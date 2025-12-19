@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+:root {
+  /* Healthcare Theme Colors - Professional Medical Blue & White */
+  --health-primary-blue: #0066cc;
+  --health-dark-blue: #004a99;
+  --health-light-blue: #3399ff;
+  --health-accent-blue: #00b4d8;
+  --health-soft-blue: #e6f3ff;
+  --health-white: #ffffff;
+  --health-light-gray: #f8f9fa;
+  --health-border: #e0e7ff;
+
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+
+  /* Theme variables */
+  --primary: var(--health-primary-blue);
+  --primary-dark: var(--health-dark-blue);
+  --accent: var(--health-accent-blue);
+  --accent-light: var(--health-light-blue);
+  --background-light: var(--health-soft-blue);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--health-primary-blue);
+  --color-secondary: var(--health-accent-blue);
+  --color-accent: var(--health-light-blue);
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-display: var(--font-lexend), var(--font-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: linear-gradient(to bottom, #f0f7ff, #ffffff);
+  color: var(--foreground);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* Healthcare inspired gradients */
+.gradient-blue {
+  background: linear-gradient(
+    135deg,
+    var(--health-primary-blue),
+    var(--health-dark-blue)
+  );
+}
+
+.gradient-light-blue {
+  background: linear-gradient(
+    135deg,
+    var(--health-light-blue),
+    var(--health-accent-blue)
+  );
+}
+
+.gradient-health {
+  background: linear-gradient(
+    135deg,
+    var(--health-primary-blue),
+    var(--health-accent-blue)
+  );
+}
+
+/* Professional Healthcare Shadows */
+.shadow-health {
+  box-shadow: 0 4px 6px rgba(0, 102, 204, 0.1),
+    0 1px 3px rgba(0, 102, 204, 0.08);
+}
+
+.shadow-health-lg {
+  box-shadow: 0 10px 25px rgba(0, 102, 204, 0.15),
+    0 5px 10px rgba(0, 102, 204, 0.1);
+}
+
+.shadow-mcd-lg {
+  box-shadow: 0 10px 15px rgba(218, 41, 28, 0.15),
+    0 4px 6px rgba(218, 41, 28, 0.1);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Hide scrollbar for clean modal look */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}

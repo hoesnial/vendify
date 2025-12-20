@@ -126,7 +126,7 @@ class _PrescriptionScanScreenState extends State<PrescriptionScanScreen>
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
-                'Resep Berhasil Dipindai',
+                'Voucher Berhasil Dipindai',
                 style: TextStyle(fontSize: 18),
               ),
             ),
@@ -137,13 +137,15 @@ class _PrescriptionScanScreenState extends State<PrescriptionScanScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Obat yang terdeteksi:',
+              'Voucher yang terdeteksi:',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 12),
-            _buildMedicineItem('Paracetamol 500mg', '2x sehari'),
-            _buildMedicineItem('Amoxicillin 250mg', '3x sehari'),
-            _buildMedicineItem('Vitamin C 1000mg', '1x sehari'),
+            _buildMedicineItem(
+              'Diskon 50%',
+              'Potongan harga 50% untuk semua item',
+            ),
+            _buildMedicineItem('Gratis Ongkir', 'Jarak maksimal 5km'),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
@@ -277,7 +279,7 @@ class _PrescriptionScanScreenState extends State<PrescriptionScanScreen>
                     ),
                     const SizedBox(height: 24),
                     const Text(
-                      'Memindai resep dokter...',
+                      'Memindai voucher...',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -326,7 +328,7 @@ class _PrescriptionScanScreenState extends State<PrescriptionScanScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Pindai Resep Dokter',
+                  'Pindai Voucher',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -398,7 +400,7 @@ class _PrescriptionScanScreenState extends State<PrescriptionScanScreen>
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
-                    'Pastikan resep terlihat jelas dan tidak buram',
+                    'Pastikan voucher terlihat jelas dan tidak buram',
                     style: TextStyle(color: Colors.white, fontSize: 13),
                     textAlign: TextAlign.center,
                   ),

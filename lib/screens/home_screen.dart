@@ -6,9 +6,7 @@ import '../services/announcement_service.dart';
 import '../widgets/announcement_popup.dart';
 import 'product_list_screen.dart';
 import 'cart_screen.dart';
-import 'order_history_screen.dart';
 import 'profile_screen.dart';
-import 'prescription_scan_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -63,8 +61,6 @@ class _HomeScreenState extends State<HomeScreen>
   final List<Widget> _screens = [
     const ProductListScreen(),
     const CartScreen(),
-    const PrescriptionScanScreen(),
-    const OrderHistoryScreen(),
     const ProfileScreen(),
   ];
 
@@ -147,62 +143,17 @@ class _HomeScreenState extends State<HomeScreen>
                       index: 1,
                       badge: cart.itemCount,
                     ),
-                    // Center space for floating button
-                    SizedBox(width: 64),
-                    _buildNavItem(
-                      icon: Icons.receipt_long_outlined,
-                      activeIcon: Icons.receipt_long_rounded,
-                      label: 'Riwayat',
-                      index: 3,
-                    ),
                     _buildNavItem(
                       icon: Icons.person_outline_rounded,
                       activeIcon: Icons.person_rounded,
                       label: 'Profil',
-                      index: 4,
+                      index: 2, // Changed index to 2
                     ),
                   ],
                 ),
               ),
               // Center floating button
-              Positioned(
-                left: 0,
-                right: 0,
-                top: 0,
-                child: Center(
-                  child: GestureDetector(
-                    onTap: () => _onItemTapped(2),
-                    child: Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppTheme.primary,
-                            AppTheme.primary.withOpacity(0.8),
-                          ],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 4),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primary.withOpacity(0.4),
-                            blurRadius: 24,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.qr_code_2_rounded,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              // Floating button removed
             ],
           ),
         );

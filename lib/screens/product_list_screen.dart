@@ -66,8 +66,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
             const SizedBox(height: 16),
 
             // Feature Cards (AI Assistant & Scan Prescription)
+            // Feature Cards (Scan Voucher Only)
             _buildActionButtons(),
-
             const SizedBox(height: 20),
 
             // Categories Horizontal List
@@ -222,118 +222,69 @@ class _ProductListScreenState extends State<ProductListScreen> {
   Widget _buildActionButtons() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          // AI Health Assistant Card
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                // Navigate to AI Health Assistant
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Snack Bot - Coming Soon!')),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.all(16),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const PrescriptionScanScreen(),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.cardColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: AppTheme.cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  color: AppTheme.primary.withOpacity(0.2),
+                  shape: BoxShape.circle,
                 ),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.emoji_emotions,
-                        color: AppTheme.primary,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Snack\nBot',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
+                child: const Icon(
+                  Icons.qr_code_scanner,
+                  color: AppTheme.primary,
+                  size: 28,
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Scan Prescription Card
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PrescriptionScanScreen(),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Pindai Voucher',
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
+                  SizedBox(height: 4),
+                  Text(
+                    'Scan kode voucher untuk diskon',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 12,
                     ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.qr_code_scanner,
-                        color: AppTheme.primary,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Scan\nVoucher',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

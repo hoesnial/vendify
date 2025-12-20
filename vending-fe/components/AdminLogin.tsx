@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Lock, User, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
+import { AxiosError } from "axios";
 
 interface AdminLoginProps {
   onLogin: () => void;
@@ -40,8 +41,10 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
     } catch (error: unknown) {
       console.error("Login error:", error);
       const errorMessage =
-        (error as { response?: { data?: { error?: string } } })?.response?.data
-          ?.error || "Username atau password salah!";
+        (error as AxiosError<{ error?: string }>)?.response?.data?.error ||
+        (error as Error).message ||
+        "Terjadi kesalahan pada server";
+      console.error("Login detailed error:", error);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);

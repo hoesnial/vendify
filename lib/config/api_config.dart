@@ -13,7 +13,7 @@ class ApiConfig {
 
   // Production URLs - Update with your actual Render & Vercel URLs
   static const String productionUrl = 'https://vending-be.onrender.com/api';
-  static const String productionFrontendUrl = 'https://vending-fe.vercel.app';
+  static const String productionFrontendUrl = 'https://http://localhost:3000';
 
   // Current environment
   // GANTI ke true untuk menggunakan production API

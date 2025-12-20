@@ -6,7 +6,19 @@ const rateLimit = require("express-rate-limit");
 require("dotenv").config();
 
 // Initialize MQTT Service
-const mqttService = require("./services/mqttService");
+// Initialize MQTT Service
+let mqttService = { isConnected: false, close: () => {} };
+const ENABLE_MQTT = false; // Set to true to enable MQTT
+
+if (ENABLE_MQTT) {
+  try {
+    mqttService = require("./services/mqttService");
+  } catch (error) {
+    console.warn("⚠️ MQTT Service failed to load:", error.message);
+  }
+} else {
+  console.log("⚠️ MQTT Service is DISABLED in code (server.js)");
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;

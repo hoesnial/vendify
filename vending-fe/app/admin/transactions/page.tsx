@@ -3,6 +3,26 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import {
+  Search,
+  Download,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  AlertTriangle,
+  CreditCard,
+  Banknote,
+  Smartphone,
+  QrCode,
+  Package,
+  ShoppingBag,
+  Clock,
+  ArrowUpRight,
+  Filter,
+} from "lucide-react";
 
 interface Stats {
   totalRevenue: number;
@@ -18,13 +38,13 @@ interface Transaction {
   item: {
     name: string;
     quantity: number;
-    icon: string;
+    icon: any;
   };
   amount: number;
   method: {
     type: string;
     details: string;
-    icon: string;
+    icon: any;
   };
   status: "completed" | "failed" | "syncing";
   statusMessage?: string;
@@ -47,82 +67,82 @@ export default function TransactionsPage() {
   const [transactionsMock] = useState<Transaction[]>([
     {
       id: "#TRX-8921",
-      timestamp: "Oct 24, 10:42 AM",
+      timestamp: "24 Okt, 10:42",
       item: {
-        name: "Ibuprofen 200mg",
+        name: "Keripik Singkong Balado",
         quantity: 1,
-        icon: "pill",
+        icon: Package,
       },
-      amount: 8.5,
+      amount: 12500,
       method: {
-        type: "Visa",
-        details: "Visa •••• 4242",
-        icon: "credit_card",
+        type: "QRIS",
+        details: "GoPay",
+        icon: QrCode,
       },
       status: "completed",
     },
     {
       id: "#TRX-8920",
-      timestamp: "Oct 24, 10:15 AM",
+      timestamp: "24 Okt, 10:15",
       item: {
-        name: "First Aid Kit (Compact)",
-        quantity: 1,
-        icon: "medical_services",
+        name: "Teh Botol Sosro 450ml",
+        quantity: 2,
+        icon: ShoppingBag,
       },
-      amount: 24.0,
+      amount: 16000,
       method: {
-        type: "Apple Pay",
-        details: "Apple Pay",
-        icon: "phone_iphone",
+        type: "QRIS",
+        details: "ShopeePay",
+        icon: Smartphone,
       },
       status: "completed",
     },
     {
       id: "#TRX-8919",
-      timestamp: "Oct 24, 09:58 AM",
+      timestamp: "24 Okt, 09:58",
       item: {
-        name: "N95 Mask (Pack of 3)",
-        quantity: 2,
-        icon: "masks",
+        name: "Choco Bar Dairy Milk",
+        quantity: 1,
+        icon: Package,
       },
-      amount: 12.5,
+      amount: 15000,
       method: {
-        type: "Mastercard",
-        details: "Mastercard •••• 8812",
-        icon: "credit_card",
+        type: "Cash",
+        details: "Tunai (Uang Pas)",
+        icon: Banknote,
       },
       status: "failed",
-      statusMessage: "Failed (Declined)",
+      statusMessage: "Uang Macet",
     },
     {
       id: "#TRX-8918",
-      timestamp: "Oct 24, 09:30 AM",
+      timestamp: "24 Okt, 09:30",
       item: {
-        name: "Hand Sanitizer 50ml",
+        name: "Kacang Atom Garuda",
         quantity: 1,
-        icon: "water_drop",
+        icon: Package,
       },
-      amount: 4.25,
+      amount: 9500,
       method: {
-        type: "Tap to Pay",
-        details: "Tap to Pay",
-        icon: "contactless",
+        type: "Card",
+        details: "Tap BCA Flazz",
+        icon: CreditCard,
       },
       status: "completed",
     },
     {
       id: "#TRX-8917",
-      timestamp: "Oct 24, 09:12 AM",
+      timestamp: "24 Okt, 09:12",
       item: {
-        name: "Allergy Relief Pack",
-        quantity: 1,
-        icon: "medication",
+        name: "Pop Mie Ayam Bawang",
+        quantity: 2,
+        icon: Package,
       },
-      amount: 15.0,
+      amount: 24000,
       method: {
-        type: "Cash",
-        details: "Cash",
-        icon: "payments",
+        type: "QRIS",
+        details: "Dana",
+        icon: QrCode,
       },
       status: "syncing",
     },
@@ -135,101 +155,21 @@ export default function TransactionsPage() {
       return;
     }
 
-    // Fetch transactions from API
-    fetchTransactions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
-
-  const fetchTransactions = async () => {
-    setIsLoading(true);
-    try {
-      const { vendingAPI } = await import("@/lib/api");
-      const response = await vendingAPI.getOrdersByMachine("VM01", {
-        limit: 50,
-      });
-
-      // Transform orders to transactions
-      const transformedTransactions: Transaction[] =
-        response.orders?.map(
-          (order: {
-            order_id: string;
-            status: string;
-            total_amount: string | number;
-            created_at: string;
-            product_name?: string;
-            quantity?: number;
-            total_quantity?: number;
-            payment_method?: string;
-          }) => {
-            const timestamp = new Date(order.created_at).toLocaleString(
-              "en-US",
-              {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true,
-              }
-            );
-
-            // Determine payment method
-            let methodType = "QRIS";
-            let methodIcon = "qr_code_2";
-            if (order.payment_method?.includes("gopay")) {
-              methodType = "GoPay";
-              methodIcon = "account_balance_wallet";
-            } else if (order.payment_method?.includes("shopeepay")) {
-              methodType = "ShopeePay";
-              methodIcon = "account_balance_wallet";
-            } else if (order.payment_method?.includes("card")) {
-              methodType = "Card";
-              methodIcon = "credit_card";
-            }
-
-            // Map status
-            let status: "completed" | "failed" | "syncing" = "syncing";
-            if (order.status === "COMPLETED") status = "completed";
-            else if (order.status === "FAILED" || order.status === "CANCELLED")
-              status = "failed";
-            else if (order.status === "PAID" || order.status === "DISPENSING")
-              status = "syncing";
-
-            return {
-              id: order.order_id,
-              timestamp,
-              item: {
-                name: order.product_name || "Multiple Items",
-                quantity: order.quantity || order.total_quantity || 1,
-                icon: "medical_services",
-              },
-              amount:
-                typeof order.total_amount === "number"
-                  ? order.total_amount
-                  : parseFloat(order.total_amount) || 0,
-              method: {
-                type: methodType,
-                details: methodType,
-                icon: methodIcon,
-              },
-              status,
-              statusMessage: status === "failed" ? order.status : undefined,
-            };
-          }
-        ) || [];
-
-      setTransactions(transformedTransactions);
-
-      // Calculate stats
-      const totalRevenue = transformedTransactions
+    // Simulate fetch
+    setTimeout(() => {
+      setTransactions(transactionsMock);
+      
+      // Calculate stats based on mock
+      const totalRevenue = transactionsMock
         .filter((t) => t.status === "completed")
         .reduce((sum, t) => sum + t.amount, 0);
-      const totalTransactions = transformedTransactions.length;
-      const completedCount = transformedTransactions.filter(
+      const totalTransactions = transactionsMock.length;
+      const completedCount = transactionsMock.filter(
         (t) => t.status === "completed"
       ).length;
       const successRate =
         totalTransactions > 0 ? (completedCount / totalTransactions) * 100 : 0;
-      const failedCount = transformedTransactions.filter(
+      const failedCount = transactionsMock.filter(
         (t) => t.status === "failed"
       ).length;
 
@@ -240,16 +180,20 @@ export default function TransactionsPage() {
         systemAlerts: failedCount,
         alertMessage:
           failedCount > 0
-            ? `${failedCount} Failed Transaction${failedCount > 1 ? "s" : ""}`
+            ? `${failedCount} Transaksi Gagal`
             : "",
       });
-    } catch (error) {
-      console.error("Failed to fetch transactions:", error);
-      // Use mock data as fallback
-      setTransactions(transactionsMock);
-    } finally {
       setIsLoading(false);
-    }
+    }, 1000);
+  }, [router, transactionsMock]);
+
+  // Format IDR currency
+  const formatIDR = (value: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(value);
   };
 
   const filteredTransactions = transactions.filter((transaction) => {
@@ -264,9 +208,7 @@ export default function TransactionsPage() {
       filter === "all" ||
       (filter === "failed" && transaction.status === "failed") ||
       (filter === "card" &&
-        (transaction.method?.type?.includes("Visa") ||
-          transaction.method?.type?.includes("Mastercard") ||
-          transaction.method?.type?.includes("card")));
+        ["QRIS", "Card"].includes(transaction.method.type));
 
     return matchesSearch && matchesFilter;
   });
@@ -275,23 +217,23 @@ export default function TransactionsPage() {
     switch (transaction.status) {
       case "completed":
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#e0f7fa] text-[#006064]">
-            <span className="w-2 h-2 rounded-full bg-current"></span>
-            Completed
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-green-50 text-green-700 border border-green-200 shadow-sm">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Berhasil
           </span>
         );
       case "failed":
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#ffebee] text-[#c62828]">
-            <span className="material-symbols-outlined text-[14px]">close</span>
-            {transaction.statusMessage || "Failed"}
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-red-50 text-red-700 border border-red-200 shadow-sm">
+            <XCircle className="w-3.5 h-3.5" />
+            {transaction.statusMessage || "Gagal"}
           </span>
         );
       case "syncing":
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700">
-            <span className="material-symbols-outlined text-[14px]">sync</span>
-            Syncing
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            Proses
           </span>
         );
       default:
@@ -300,28 +242,31 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="flex h-screen bg-[#f6f8f8] font-['Inter']">
+    <div className="flex h-screen bg-amber-50/20 font-sans">
       <AdminSidebar />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-y-auto">
         {/* Header Section */}
-        <header className="px-8 pt-8 pb-4">
+        <header className="px-8 pt-8 pb-6">
           <div className="flex flex-wrap justify-between items-end gap-4">
-            <div className="flex flex-col gap-2">
-              <h2 className="text-[#111718] text-4xl font-black leading-tight tracking-[-0.033em]">
-                Transaction Log
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">
+                <span>Admin</span>
+                <ChevronRight className="h-3 w-3" />
+                <span>Transaksi</span>
+              </div>
+              <h2 className="text-3xl font-black tracking-tight text-amber-900">
+                Riwayat Transaksi
               </h2>
-              <p className="text-[#618689] text-base font-normal">
-                Viewing activity for October 24, 2023
+              <p className="text-gray-500 font-medium">
+                Melihat aktivitas untuk 24 Oktober 2023
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="bg-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm border border-[#dbe5e6] text-[#618689] flex items-center gap-2">
-                <span className="material-symbols-outlined text-lg">
-                  calendar_today
-                </span>
-                Today, Oct 24
+              <span className="bg-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm border border-amber-100/50 text-gray-500 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-amber-500" />
+                Hari Ini, 24 Okt
               </span>
             </div>
           </div>
@@ -331,263 +276,247 @@ export default function TransactionsPage() {
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
-              <div className="w-12 h-12 border-4 border-[#13daec] border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-[#618689] font-medium">
-                Loading transactions...
+              <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-gray-500 font-bold animate-pulse">
+                Memuat data transaksi...
               </p>
             </div>
           </div>
         ) : (
-          <>
-            <div className="flex-1 overflow-y-auto px-8 pb-8">
-              {/* Stats Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div className="flex flex-col gap-3 rounded-2xl p-6 bg-white border border-[#dbe5e6] shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <p className="text-[#618689] text-sm font-medium uppercase tracking-wide">
-                      Total Revenue
-                    </p>
-                    <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">
-                      +12%
-                    </span>
-                  </div>
-                  <p className="text-[#111718] text-3xl font-bold leading-tight tracking-tight">
-                    ${stats.totalRevenue.toFixed(2)}
+          <div className="flex-1 overflow-y-auto px-8 pb-8">
+            {/* Stats Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div className="flex flex-col gap-3 rounded-3xl p-6 bg-white border border-amber-50 shadow-lg shadow-amber-100/50 hover:-translate-y-1 transition-transform">
+                <div className="flex justify-between items-start">
+                  <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">
+                    Total Revenue
                   </p>
+                  <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
+                    <ArrowUpRight className="w-3 h-3" />
+                    12%
+                  </span>
                 </div>
-
-                <div className="flex flex-col gap-3 rounded-2xl p-6 bg-white border border-[#dbe5e6] shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <p className="text-[#618689] text-sm font-medium uppercase tracking-wide">
-                      Transactions
-                    </p>
-                    <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">
-                      +5%
-                    </span>
-                  </div>
-                  <p className="text-[#111718] text-3xl font-bold leading-tight tracking-tight">
-                    {stats.transactions}
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-3 rounded-2xl p-6 bg-white border border-[#dbe5e6] shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <p className="text-[#618689] text-sm font-medium uppercase tracking-wide">
-                      Success Rate
-                    </p>
-                    <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">
-                      +0.2%
-                    </span>
-                  </div>
-                  <p className="text-[#111718] text-3xl font-bold leading-tight tracking-tight">
-                    {stats.successRate}%
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-3 rounded-2xl p-6 bg-white border border-orange-200 shadow-sm relative overflow-hidden">
-                  <div className="absolute right-0 top-0 h-full w-1 bg-orange-400"></div>
-                  <div className="flex justify-between items-start">
-                    <p className="text-[#618689] text-sm font-medium uppercase tracking-wide">
-                      System Alerts
-                    </p>
-                    <span className="material-symbols-outlined text-orange-500 text-xl">
-                      warning
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-[#111718] text-3xl font-bold leading-tight tracking-tight">
-                      {stats.systemAlerts} Active
-                    </p>
-                    <p className="text-orange-600 text-sm font-medium mt-1">
-                      {stats.alertMessage}
-                    </p>
-                  </div>
-                </div>
+                <p className="text-gray-900 text-2xl font-black tracking-tight">
+                  {formatIDR(stats.totalRevenue)}
+                </p>
               </div>
 
-              {/* Controls & Filters */}
-              <div className="flex flex-col lg:flex-row gap-4 mb-6 items-center justify-between">
-                <div className="w-full lg:w-auto lg:flex-1 max-w-2xl flex flex-col sm:flex-row gap-4">
-                  {/* Search */}
-                  <label className="flex items-center h-14 w-full bg-white rounded-xl border border-[#dbe5e6] shadow-sm focus-within:ring-2 focus-within:ring-[#13daec] focus-within:border-[#13daec] transition-all overflow-hidden">
-                    <div className="pl-4 text-[#618689] flex items-center justify-center">
-                      <span className="material-symbols-outlined text-[24px]">
-                        search
-                      </span>
-                    </div>
-                    <input
-                      className="w-full h-full bg-transparent border-none focus:ring-0 text-[#111718] placeholder:text-[#618689] px-3 text-base font-normal outline-none"
-                      placeholder="Search ID, Item Name..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </label>
-
-                  {/* Filter Chips */}
-                  <div className="flex gap-2 pb-1 sm:pb-0 items-center">
-                    <button
-                      onClick={() => setFilter("all")}
-                      className={`h-12 px-4 rounded-xl text-sm font-medium whitespace-nowrap shadow-md flex items-center gap-2 ${
-                        filter === "all"
-                          ? "bg-[#111718] text-white"
-                          : "bg-white border border-[#dbe5e6] text-[#111718] hover:bg-[#f0f4f4]"
-                      }`}
-                    >
-                      All Logs
-                    </button>
-                    <button
-                      onClick={() => setFilter("failed")}
-                      className={`h-12 px-4 rounded-xl text-sm font-medium whitespace-nowrap flex items-center gap-2 transition-colors ${
-                        filter === "failed"
-                          ? "bg-[#111718] text-white"
-                          : "bg-white border border-[#dbe5e6] text-[#111718] hover:bg-[#f0f4f4]"
-                      }`}
-                    >
-                      Failed Only
-                      <span className="material-symbols-outlined text-[18px]">
-                        error
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => setFilter("card")}
-                      className={`h-12 px-4 rounded-xl text-sm font-medium whitespace-nowrap flex items-center gap-2 transition-colors ${
-                        filter === "card"
-                          ? "bg-[#111718] text-white"
-                          : "bg-white border border-[#dbe5e6] text-[#111718] hover:bg-[#f0f4f4]"
-                      }`}
-                    >
-                      Card Payments
-                      <span className="material-symbols-outlined text-[18px]">
-                        credit_card
-                      </span>
-                    </button>
-                  </div>
+              <div className="flex flex-col gap-3 rounded-3xl p-6 bg-white border border-amber-50 shadow-lg shadow-amber-100/50 hover:-translate-y-1 transition-transform">
+                <div className="flex justify-between items-start">
+                  <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">
+                    Total Transaksi
+                  </p>
+                  <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
+                    <ArrowUpRight className="w-3 h-3" />
+                    5%
+                  </span>
                 </div>
-
-                {/* Export Button */}
-                <button className="h-14 px-6 rounded-xl bg-[#13daec] hover:bg-[#0ebac9] text-[#102022] text-base font-bold shadow-lg shadow-[#13daec]/20 flex items-center gap-3 transition-colors shrink-0 w-full lg:w-auto justify-center">
-                  <span className="material-symbols-outlined">download</span>
-                  Export Log
-                </button>
+                <p className="text-gray-900 text-2xl font-black tracking-tight">
+                  {stats.transactions}
+                </p>
               </div>
 
-              {/* Transactions Table */}
-              <div className="bg-white border border-[#dbe5e6] rounded-2xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-[#dbe5e6] bg-[#f8fafb]">
-                        <th className="py-4 px-6 text-[#618689] font-medium text-sm uppercase tracking-wider w-[120px]">
-                          ID
-                        </th>
-                        <th className="py-4 px-6 text-[#618689] font-medium text-sm uppercase tracking-wider">
-                          Timestamp
-                        </th>
-                        <th className="py-4 px-6 text-[#618689] font-medium text-sm uppercase tracking-wider">
-                          Item(s)
-                        </th>
-                        <th className="py-4 px-6 text-[#618689] font-medium text-sm uppercase tracking-wider text-right">
-                          Amount
-                        </th>
-                        <th className="py-4 px-6 text-[#618689] font-medium text-sm uppercase tracking-wider">
-                          Method
-                        </th>
-                        <th className="py-4 px-6 text-[#618689] font-medium text-sm uppercase tracking-wider text-center">
-                          Status
-                        </th>
-                        <th className="py-4 px-6 text-[#618689] font-medium text-sm uppercase tracking-wider w-[60px]"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#dbe5e6]">
-                      {filteredTransactions.map((transaction, index) => (
-                        <tr
-                          key={transaction.id || `transaction-${index}`}
-                          className={`group cursor-pointer transition-colors ${
-                            transaction.status === "failed"
-                              ? "bg-red-50/50 hover:bg-red-50"
-                              : "hover:bg-[#f0f4f4]"
-                          }`}
-                        >
-                          <td className="py-5 px-6 font-mono text-sm text-[#618689]">
-                            {transaction.id}
-                          </td>
-                          <td className="py-5 px-6 text-[#111718] font-medium">
-                            {transaction.timestamp}
-                          </td>
-                          <td className="py-5 px-6">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-[#f0f4f4] flex items-center justify-center shrink-0">
-                                <span className="material-symbols-outlined text-[#618689] text-[20px]">
-                                  {transaction.item.icon}
-                                </span>
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-[#111718] font-medium text-base">
-                                  {transaction.item.name}
-                                </span>
-                                <span className="text-[#618689] text-xs">
-                                  x{transaction.item.quantity} Unit
-                                  {transaction.item.quantity > 1 ? "s" : ""}
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-5 px-6 text-right font-bold text-[#111718] text-lg">
-                            ${transaction.amount.toFixed(2)}
-                          </td>
-                          <td className="py-5 px-6">
-                            <div className="flex items-center gap-2 text-[#618689]">
-                              <span className="material-symbols-outlined text-[20px]">
-                                {transaction.method.icon}
-                              </span>
-                              <span className="text-sm">
-                                {transaction.method.details}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-5 px-6 text-center">
-                            {getStatusBadge(transaction)}
-                          </td>
-                          <td className="py-5 px-6 text-right">
-                            <span className="material-symbols-outlined text-[#9ca3af] group-hover:text-[#111718] transition-colors">
-                              chevron_right
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Pagination */}
-                <div className="flex items-center justify-between px-6 py-4 bg-[#f8fafb] border-t border-[#dbe5e6]">
-                  <p className="text-sm text-[#618689]">
-                    Showing{" "}
-                    <span className="font-bold text-[#111718]">
-                      1-{filteredTransactions.length}
-                    </span>{" "}
-                    of{" "}
-                    <span className="font-bold text-[#111718]">
-                      {stats.transactions}
-                    </span>{" "}
-                    transactions
+              <div className="flex flex-col gap-3 rounded-3xl p-6 bg-white border border-amber-50 shadow-lg shadow-amber-100/50 hover:-translate-y-1 transition-transform">
+                <div className="flex justify-between items-start">
+                  <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">
+                    Success Rate
                   </p>
-                  <div className="flex gap-2">
-                    <button className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-[#dbe5e6] text-[#618689] opacity-50 cursor-not-allowed">
-                      <span className="material-symbols-outlined">
-                        chevron_left
-                      </span>
-                    </button>
-                    <button className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-[#dbe5e6] text-[#111718] hover:bg-[#f0f4f4]">
-                      <span className="material-symbols-outlined">
-                        chevron_right
-                      </span>
-                    </button>
-                  </div>
+                  <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
+                    <ArrowUpRight className="w-3 h-3" />
+                    0.2%
+                  </span>
+                </div>
+                <p className="text-gray-900 text-2xl font-black tracking-tight">
+                  {stats.successRate}%
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 rounded-3xl p-6 bg-amber-500 border border-amber-400 shadow-lg shadow-amber-200 hover:-translate-y-1 transition-transform relative overflow-hidden text-white group">
+                <div className="absolute right-0 top-0 h-full w-32 bg-white/10 skew-x-12 translate-x-16 group-hover:translate-x-8 transition-transform"></div>
+                <div className="flex justify-between items-start relative z-10">
+                  <p className="text-amber-100 text-xs font-bold uppercase tracking-wider">
+                    System Alerts
+                  </p>
+                  <AlertTriangle className="text-white w-5 h-5" />
+                </div>
+                <div className="relative z-10">
+                  <p className="text-white text-2xl font-black tracking-tight flex items-center gap-2">
+                    {stats.systemAlerts} <span className="text-lg font-bold opacity-80">Aktif</span>
+                  </p>
+                  <p className="text-amber-100 text-xs font-bold mt-1 bg-white/20 inline-block px-2 py-1 rounded-lg">
+                    {stats.alertMessage || "Semua sistem normal"}
+                  </p>
                 </div>
               </div>
             </div>
-          </>
+
+            {/* Controls & Filters */}
+            <div className="flex flex-col lg:flex-row gap-4 mb-6 items-center justify-between">
+              <div className="w-full lg:w-auto lg:flex-1 max-w-2xl flex flex-col sm:flex-row gap-4">
+                {/* Search */}
+                <label className="flex items-center h-12 w-full bg-white rounded-xl border border-amber-100 shadow-sm focus-within:ring-2 focus-within:ring-amber-400 focus-within:border-amber-400 transition-all overflow-hidden">
+                  <div className="pl-4 text-gray-400 flex items-center justify-center">
+                    <Search className="w-5 h-5" />
+                  </div>
+                  <input
+                    className="w-full h-full bg-transparent border-none focus:ring-0 text-gray-900 placeholder:text-gray-400 px-3 text-sm font-medium outline-none"
+                    placeholder="Cari ID Transaksi, Nama Produk..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </label>
+
+                {/* Filter Chips */}
+                <div className="flex gap-2 pb-1 sm:pb-0 items-center overflow-x-auto">
+                  <button
+                    onClick={() => setFilter("all")}
+                    className={`h-11 px-5 rounded-xl text-sm font-bold whitespace-nowrap shadow-sm transition-all flex items-center gap-2 ${
+                      filter === "all"
+                        ? "bg-amber-500 text-white shadow-amber-200"
+                        : "bg-white border border-amber-100 text-gray-500 hover:text-amber-600 hover:border-amber-200"
+                    }`}
+                  >
+                    Semua
+                  </button>
+                  <button
+                    onClick={() => setFilter("failed")}
+                    className={`h-11 px-5 rounded-xl text-sm font-bold whitespace-nowrap shadow-sm transition-all flex items-center gap-2 ${
+                      filter === "failed"
+                        ? "bg-red-500 text-white shadow-red-200"
+                        : "bg-white border border-amber-100 text-gray-500 hover:text-red-500 hover:border-red-200"
+                    }`}
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                    Gagal
+                  </button>
+                  <button
+                    onClick={() => setFilter("card")}
+                    className={`h-11 px-5 rounded-xl text-sm font-bold whitespace-nowrap shadow-sm transition-all flex items-center gap-2 ${
+                      filter === "card"
+                        ? "bg-blue-500 text-white shadow-blue-200"
+                        : "bg-white border border-amber-100 text-gray-500 hover:text-blue-500 hover:border-blue-200"
+                    }`}
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    Non-Tunai
+                  </button>
+                </div>
+              </div>
+
+              {/* Export Button */}
+              <button className="h-12 px-6 rounded-xl bg-white border border-amber-200 hover:bg-amber-50 text-amber-700 text-sm font-bold shadow-sm flex items-center gap-2 transition-colors shrink-0 w-full lg:w-auto justify-center">
+                <Download className="w-4 h-4" />
+                Export CSV
+              </button>
+            </div>
+
+            {/* Transactions Table */}
+            <div className="bg-white border border-amber-100 rounded-3xl overflow-hidden shadow-lg shadow-amber-100/50">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-amber-100 bg-amber-50/50">
+                      <th className="py-4 px-6 text-gray-400 font-bold text-xs uppercase tracking-wider w-[120px]">
+                        ID
+                      </th>
+                      <th className="py-4 px-6 text-gray-400 font-bold text-xs uppercase tracking-wider">
+                        Waktu
+                      </th>
+                      <th className="py-4 px-6 text-gray-400 font-bold text-xs uppercase tracking-wider">
+                        Produk & Item
+                      </th>
+                      <th className="py-4 px-6 text-gray-400 font-bold text-xs uppercase tracking-wider text-right">
+                        Total
+                      </th>
+                      <th className="py-4 px-6 text-gray-400 font-bold text-xs uppercase tracking-wider">
+                        Metode
+                      </th>
+                      <th className="py-4 px-6 text-gray-400 font-bold text-xs uppercase tracking-wider text-center">
+                        Status
+                      </th>
+                      <th className="py-4 px-6 text-gray-400 font-bold text-xs uppercase tracking-wider w-[60px]"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-amber-50">
+                    {filteredTransactions.map((transaction, index) => (
+                      <tr
+                        key={transaction.id || `transaction-${index}`}
+                        className={`group cursor-pointer transition-colors ${
+                          transaction.status === "failed"
+                            ? "bg-red-50/30 hover:bg-red-50/60"
+                            : "hover:bg-amber-50/40"
+                        }`}
+                      >
+                        <td className="py-5 px-6 font-mono text-sm font-medium text-gray-500">
+                          {transaction.id}
+                        </td>
+                        <td className="py-5 px-6 text-gray-900 font-bold text-sm">
+                          {transaction.timestamp}
+                        </td>
+                        <td className="py-5 px-6">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                              <transaction.item.icon className="w-5 h-5" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-gray-900 font-bold text-sm">
+                                {transaction.item.name}
+                              </span>
+                              <span className="text-gray-400 text-xs font-medium">
+                                x{transaction.item.quantity} Unit
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-5 px-6 text-right font-black text-gray-900 text-sm">
+                          {formatIDR(transaction.amount)}
+                        </td>
+                        <td className="py-5 px-6">
+                          <div className="flex items-center gap-2 text-gray-500">
+                            <transaction.method.icon className="w-4 h-4" />
+                            <span className="text-sm font-medium">
+                              {transaction.method.details}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-5 px-6 text-center">
+                          {getStatusBadge(transaction)}
+                        </td>
+                        <td className="py-5 px-6 text-right">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-amber-100 text-gray-300 group-hover:text-amber-600 transition-all">
+                            <ChevronRight className="w-5 h-5" />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <div className="flex items-center justify-between px-6 py-4 bg-amber-50/30 border-t border-amber-100">
+                <p className="text-sm text-gray-500 font-medium">
+                  Menampilkan{" "}
+                  <span className="font-bold text-gray-900">
+                    1-{filteredTransactions.length}
+                  </span>{" "}
+                  dari{" "}
+                  <span className="font-bold text-gray-900">
+                    {stats.transactions}
+                  </span>{" "}
+                  transaksi
+                </p>
+                <div className="flex gap-2">
+                  <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-amber-100 text-gray-400 opacity-50 cursor-not-allowed">
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-amber-100 text-gray-900 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-all shadow-sm">
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </div>

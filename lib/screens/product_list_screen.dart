@@ -3,8 +3,10 @@ import '../models/product.dart';
 import '../services/product_service.dart';
 import '../widgets/mcd_product_card.dart';
 import '../theme/app_theme.dart';
-import 'product_detail_screen.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import '../providers/cart_provider.dart';
 import 'prescription_scan_screen.dart';
+import 'product_detail_screen.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
@@ -68,12 +70,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
             // Feature Cards (AI Assistant & Scan Prescription)
             // Feature Cards (Scan Voucher Only)
             _buildActionButtons(),
-            const SizedBox(height: 20),
-
-            // Categories Horizontal List
-            // Categories Horizontal List Removed
-            const SizedBox(height: 20),
-
             // Products Section
             _buildProductsSection(),
           ],
@@ -293,28 +289,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Segera Nikmati',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                'Lihat semua',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppTheme.accentBlue,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-
         // Products Grid
         _isLoading
             ? const Center(
@@ -327,34 +301,42 @@ class _ProductListScreenState extends State<ProductListScreen> {
             ? _buildErrorState()
             : _filteredProducts.isEmpty
             ? _buildEmptyState()
-            : Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.7,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: _filteredProducts.length,
-                  itemBuilder: (context, index) {
-                    return McdProductCard(
-                      product: _filteredProducts[index],
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ProductDetailScreen(
-                              product: _filteredProducts[index],
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
+            : GridView.builder(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.7,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
                 ),
+                itemCount: _filteredProducts.length,
+                itemBuilder: (context, index) {
+                  return McdProductCard(
+                    product: _filteredProducts[index],
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProductDetailScreen(
+                            product: _filteredProducts[index],
+                          ),
+                        ),
+                      );
+                    },
+                    onBuy: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProductDetailScreen(
+                            product: _filteredProducts[index],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
 
         const SizedBox(height: 20),

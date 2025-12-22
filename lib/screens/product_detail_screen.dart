@@ -5,6 +5,8 @@ import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import '../utils/helpers.dart';
 import '../theme/app_theme.dart';
+import 'payment_screen.dart';
+import '../models/cart_item.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -50,6 +52,31 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     cartProvider.addItem(widget.product, _quantity);
     _showSuccessToast();
+  }
+
+  void _buyNow() {
+    if (_quantity > widget.product.stock) {
+      Fluttertoast.showToast(
+        msg: "⚠ Stok tidak mencukupi",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.TOP,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 14.0,
+      );
+      return;
+    }
+
+    // Create a temporary cart item for direct purchase
+    final directItem = CartItem(product: widget.product, quantity: _quantity);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            PaymentScreen(directItems: [directItem], isBuyNow: true),
+      ),
+    );
   }
 
   @override
@@ -441,10 +468,46 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             borderRadius: BorderRadius.circular(12),
                             child: const Center(
                               child: Text(
-                                'Masukkan Keranjang',
+                                'Keranjang',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 16,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Buy Now Button
+                    Expanded(
+                      child: Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.orange.withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: widget.product.stock > 0 ? _buyNow : null,
+                            borderRadius: BorderRadius.circular(12),
+                            child: const Center(
+                              child: Text(
+                                'Beli Langsung',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),

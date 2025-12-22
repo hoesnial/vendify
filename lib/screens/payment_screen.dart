@@ -11,8 +11,13 @@ import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'midtrans_webview_screen.dart';
 
+import '../models/cart_item.dart';
+
 class PaymentScreen extends StatefulWidget {
-  const PaymentScreen({super.key});
+  final List<CartItem>? directItems;
+  final bool isBuyNow;
+
+  const PaymentScreen({super.key, this.directItems, this.isBuyNow = false});
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -78,6 +83,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
     super.dispose();
   }
 
+  // Helper to get items to process (either from cart or direct)
+  List<CartItem> get _itemsToProcess {
+    if (widget.directItems != null && widget.directItems!.isNotEmpty) {
+      return widget.directItems!;
+    }
+    return Provider.of<CartProvider>(context, listen: false).items;
+  }
+
+  // Helper to get total price
+  double get _totalPrice {
+    if (widget.directItems != null && widget.directItems!.isNotEmpty) {
+      return widget.directItems!.fold(0, (sum, item) => sum + item.totalPrice);
+    }
+    return Provider.of<CartProvider>(context, listen: false).totalPrice;
+  }
+
   Future<void> _createPayment() async {
     setState(() {
       _isLoading = true;
@@ -85,9 +106,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     });
 
     try {
-      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      final itemsToBuy = _itemsToProcess;
 
-      if (cartProvider.items.isEmpty) {
+      if (itemsToBuy.isEmpty) {
         setState(() {
           _errorMessage = 'Keranjang kosong';
           _isLoading = false;
@@ -95,7 +116,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         return;
       }
 
-      final itemsWithoutSlot = cartProvider.items
+      final itemsWithoutSlot = itemsToBuy
           .where((item) => item.product.slotId == null)
           .toList();
       if (itemsWithoutSlot.isNotEmpty) {
@@ -107,7 +128,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         return;
       }
 
-      final items = cartProvider.items
+      final items = itemsToBuy
           .map(
             (item) => {
               'slot_id': item.product.slotId!,
@@ -119,7 +140,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       final payment = await _paymentService.createPayment(
         items: items,
-        totalAmount: cartProvider.totalPrice,
+        totalAmount: _totalPrice,
       );
 
       setState(() {
@@ -143,9 +164,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     });
 
     try {
-      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      final itemsToBuy = _itemsToProcess;
 
-      if (cartProvider.items.isEmpty) {
+      if (itemsToBuy.isEmpty) {
         setState(() {
           _errorMessage = 'Keranjang kosong';
           _isLoading = false;
@@ -153,7 +174,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         return;
       }
 
-      final itemsWithoutSlot = cartProvider.items
+      final itemsWithoutSlot = itemsToBuy
           .where((item) => item.product.slotId == null)
           .toList();
       if (itemsWithoutSlot.isNotEmpty) {
@@ -165,7 +186,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         return;
       }
 
-      final items = cartProvider.items
+      final items = itemsToBuy
           .map(
             (item) => {
               'slot_id': item.product.slotId!,
@@ -177,7 +198,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       final payment = await _paymentService.createPayment(
         items: items,
-        totalAmount: cartProvider.totalPrice,
+        totalAmount: _totalPrice,
       );
 
       setState(() {
@@ -202,9 +223,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     });
 
     try {
-      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      final itemsToBuy = _itemsToProcess;
 
-      if (cartProvider.items.isEmpty) {
+      if (itemsToBuy.isEmpty) {
         setState(() {
           _errorMessage = 'Keranjang kosong';
           _isLoading = false;
@@ -212,7 +233,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         return;
       }
 
-      final itemsWithoutSlot = cartProvider.items
+      final itemsWithoutSlot = itemsToBuy
           .where((item) => item.product.slotId == null)
           .toList();
       if (itemsWithoutSlot.isNotEmpty) {
@@ -226,7 +247,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       // STEP 1: Create order in backend first (for single item only for now)
       print('📦 Step 1: Creating order in backend...');
-      final firstItem = cartProvider.items[0];
+      final firstItem = itemsToBuy[0];
       final items = [
         {
           'slot_id': firstItem.product.slotId!,
@@ -237,7 +258,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       final backendOrder = await _paymentService.createPayment(
         items: items,
-        totalAmount: cartProvider.totalPrice,
+        totalAmount: _totalPrice,
       );
 
       print('✅ Backend order created: ${backendOrder.orderId}');
@@ -246,10 +267,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
       print('📦 Step 2: Creating Midtrans transaction...');
       final paymentRequest = PaymentRequest(
         orderId: backendOrder.orderId,
-        amount: cartProvider.totalPrice,
+        amount: _totalPrice,
         customerName: 'Customer',
         customerEmail: 'customer@example.com',
-        items: cartProvider.items.map((item) {
+        items: itemsToBuy.map((item) {
           return PaymentItem(
             id: item.product.id.toString(),
             name: item.product.name,
@@ -425,14 +446,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
 
     // Get slot number from payment
-    // Assuming payment has slot_id or we can get it from cart
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    if (cartProvider.items.isEmpty) {
-      print('⚠️ Cannot trigger dispense - cart is empty');
+    final itemsToBuy = _itemsToProcess;
+    if (itemsToBuy.isEmpty) {
+      print('⚠️ Cannot trigger dispense - no items to buy');
       return;
     }
 
-    final firstItem = cartProvider.items.first;
+    final firstItem = itemsToBuy.first;
     final slotId = firstItem.product.slotId;
 
     if (slotId == null) {
@@ -471,6 +491,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           orderId: _payment!.orderId,
           cartProvider: cartProvider,
           mqttService: _mqttService,
+          // IMPORTANT: Only clear cart if this was NOT a Buy Now (direct) purchase
+          shouldClearCart: !widget.isBuyNow,
         ),
       ),
     );
@@ -592,7 +614,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildPaymentMethodSelection() {
-    final cartProvider = Provider.of<CartProvider>(context);
+    // Determine whether to show direct items or cart items
+    final itemsToDisplay = _itemsToProcess;
 
     return Stack(
       children: [
@@ -615,7 +638,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
 
               // Order Items List
-              ...cartProvider.items.map((item) {
+              ...itemsToDisplay.map((item) {
                 return Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -720,7 +743,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             ),
                           ),
                           Text(
-                            Helpers.formatCurrency(cartProvider.totalPrice),
+                            Helpers.formatCurrency(_totalPrice),
                             style: const TextStyle(
                               fontSize: 14,
                               color: AppTheme.textPrimary,
@@ -764,7 +787,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             ),
                           ),
                           Text(
-                            Helpers.formatCurrency(cartProvider.totalPrice),
+                            Helpers.formatCurrency(_totalPrice),
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -1412,12 +1435,14 @@ class _DispensingScreen extends StatefulWidget {
   final String orderId;
   final CartProvider cartProvider;
   final MqttService mqttService;
+  final bool shouldClearCart;
 
   const _DispensingScreen({
     Key? key,
     required this.orderId,
     required this.cartProvider,
     required this.mqttService,
+    this.shouldClearCart = true,
   }) : super(key: key);
 
   @override
@@ -1453,7 +1478,9 @@ class _DispensingScreenState extends State<_DispensingScreen>
           // Wait a moment then navigate to success screen
           Future.delayed(const Duration(seconds: 2), () {
             if (mounted) {
-              widget.cartProvider.clear();
+              if (widget.shouldClearCart) {
+                widget.cartProvider.clear();
+              }
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(
                   builder: (context) => const _PurchaseCompleteScreen(),

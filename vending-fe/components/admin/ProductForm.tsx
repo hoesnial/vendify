@@ -25,10 +25,10 @@ export default function ProductForm({
   onCancel,
 }: ProductFormProps) {
   const [formData, setFormData] = useState({
-    name: product?.name || "",
-    description: product?.description || "",
-    price: product?.price || "",
-    category: product?.category || "beverage",
+    name: product?.name ?? "",
+    description: product?.description ?? "",
+    price: product?.price ?? "",
+    category: product?.category ?? "beverage",
     is_active: product?.is_active ?? true,
   });
 
@@ -98,31 +98,23 @@ export default function ProductForm({
         data.append("image", imageFile);
       }
 
-      const url = product
-        ? `http://localhost:3001/api/products/${product.id}`
-        : "http://localhost:3001/api/products";
-
-      const method = product ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        body: data,
-      });
-
-      if (response.ok) {
-        alert(
-          product
-            ? "Product updated successfully"
-            : "Product created successfully"
-        );
-        onSuccess();
+      const { vendingAPI } = await import("@/lib/api");
+      
+      if (product) {
+        await vendingAPI.updateProduct(product.id, data);
+        alert("Product updated successfully");
       } else {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to save product");
+        await vendingAPI.createProduct(data);
+        alert("Product created successfully");
       }
+
+      onSuccess();
     } catch (error) {
       console.error("Error saving product:", error);
-      alert(error instanceof Error ? error.message : "Failed to save product");
+      // api.ts interceptor already logs details, but we can access error response if needed
+      // Axios error handling is a bit different than fetch (throws on non-2xx)
+      // We can just show a generic message or extract from error object if complex
+      alert("Failed to save product. Please checking your input or connection.");
     } finally {
       setIsSubmitting(false);
     }
@@ -255,8 +247,8 @@ export default function ProductForm({
             onChange={handleInputChange}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
           >
-            <option value="obat">Obat</option>
-            <option value="vitamin">Vitamin</option>
+            <option value="makanan">Makanan</option>
+            <option value="minuman">Minuman</option>
           </select>
         </div>
       </div>

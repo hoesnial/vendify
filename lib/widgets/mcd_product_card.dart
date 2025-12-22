@@ -6,8 +6,14 @@ import '../utils/helpers.dart';
 class McdProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback onTap;
+  final VoidCallback? onBuy;
 
-  const McdProductCard({super.key, required this.product, required this.onTap});
+  const McdProductCard({
+    super.key,
+    required this.product,
+    required this.onTap,
+    this.onBuy,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -145,21 +151,28 @@ class McdProductCard extends StatelessWidget {
 
                         // Add Button (Small)
                         if (isAvailable)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.accentBlue,
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: onBuy,
                               borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Text(
-                              'Beli',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accentBlue,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  'Beli',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
                           ),

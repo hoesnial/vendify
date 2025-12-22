@@ -47,33 +47,47 @@ router.get("/", async (req, res) => {
     const { machine_id } = req.query;
     const currentMachine = machine_id || process.env.MACHINE_ID || "VM01";
 
-    const products = await db.query(
-      `
-      SELECT 
-        p.*,
-        s.id as slot_id,
-        s.slot_number,
-        s.current_stock,
-        s.capacity,
-        s.price_override,
-        COALESCE(s.price_override, p.price) as final_price,
-        s.is_active as slot_active
-      FROM products p
-      LEFT JOIN slots s ON p.id = s.product_id AND s.machine_id = ?
-      WHERE p.is_active = 1
-      ORDER BY s.slot_number ASC, p.name ASC
-    `,
-      [currentMachine]
-    );
+    if (process.env.USE_SUPABASE === "true") {
+      const supabase = db.getClient();
+      
+      // Get all active products
+      const { data: products, error: productsError } = await supabase
+        .from("products")
+        .select("*")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
 
-    // Group by product and include all slots
-    const productMap = new Map();
+      if (productsError) throw productsError;
 
-    products.forEach((product) => {
-      const productId = product.id;
+      // Get slots for machine
+      const { data: slots, error: slotsError } = await supabase
+        .from("slots")
+        .select("*")
+        .eq("machine_id", currentMachine);
+        
+      if (slotsError) throw slotsError;
 
-      if (!productMap.has(productId)) {
-        productMap.set(productId, {
+      // Combine
+      const result = products.map(product => {
+        const productSlots = slots.filter(s => s.product_id === product.id);
+        const slotData = productSlots.map(s => ({
+            slot_id: s.id,
+            slot_number: s.slot_number,
+            current_stock: s.current_stock,
+            capacity: s.capacity,
+            final_price: s.price_override || product.price,
+            is_available: s.is_active && s.current_stock > 0
+        }));
+
+        // Flatten slots for compatibility if needed or just return list
+        // The MySQL query seemingly returns a list of products with slot info attached.
+        // If a product is in multiple slots, it appears multiple times in MySQL result?
+        // Wait, the MySQL query: LEFT JOIN slots .... Yes, it duplicates products if multiple slots.
+        // Then the code GROUPS them: `productMap.has(productId)`.
+        
+        // So I can just reconstruct the final object directly.
+        
+        return {
           id: product.id,
           name: product.name,
           description: product.description,
@@ -81,28 +95,74 @@ router.get("/", async (req, res) => {
           image_url: product.image_url,
           category: product.category,
           is_active: product.is_active,
-          slots: [],
-        });
-      }
+          slots: slotData
+        };
+      });
 
-      if (product.slot_id) {
-        productMap.get(productId).slots.push({
-          slot_id: product.slot_id,
-          slot_number: product.slot_number,
-          current_stock: product.current_stock,
-          capacity: product.capacity,
-          final_price: product.final_price,
-          is_available: product.slot_active && product.current_stock > 0,
-        });
-      }
-    });
+      res.json({
+        machine_id: currentMachine,
+        products: result,
+      });
 
-    const result = Array.from(productMap.values());
+    } else {
+      // MySQL Implementation
+      const products = await db.query(
+        `
+        SELECT 
+          p.*,
+          s.id as slot_id,
+          s.slot_number,
+          s.current_stock,
+          s.capacity,
+          s.price_override,
+          COALESCE(s.price_override, p.price) as final_price,
+          s.is_active as slot_active
+        FROM products p
+        LEFT JOIN slots s ON p.id = s.product_id AND s.machine_id = ?
+        WHERE p.is_active = 1
+        ORDER BY s.slot_number ASC, p.name ASC
+      `,
+        [currentMachine]
+      );
 
-    res.json({
-      machine_id: currentMachine,
-      products: result,
-    });
+      // Group by product and include all slots
+      const productMap = new Map();
+
+      products.forEach((product) => {
+        const productId = product.id;
+
+        if (!productMap.has(productId)) {
+          productMap.set(productId, {
+            id: product.id,
+            name: product.name,
+            description: product.description,
+            price: product.price,
+            image_url: product.image_url,
+            category: product.category,
+            is_active: product.is_active,
+            slots: [],
+          });
+        }
+
+        if (product.slot_id) {
+          productMap.get(productId).slots.push({
+            slot_id: product.slot_id,
+            slot_number: product.slot_number,
+            current_stock: product.current_stock,
+            capacity: product.capacity,
+            final_price: product.final_price,
+            is_available: product.slot_active && product.current_stock > 0,
+          });
+        }
+      });
+
+      const result = Array.from(productMap.values());
+
+      res.json({
+        machine_id: currentMachine,
+        products: result,
+      });
+    }
   } catch (error) {
     console.error("Get products error:", error);
     res.status(500).json({
@@ -215,52 +275,91 @@ router.get("/:id", async (req, res) => {
     const { machine_id } = req.query;
     const currentMachine = machine_id || process.env.MACHINE_ID || "VM01";
 
-    const product = await db.query(
-      `
-      SELECT 
-        p.*,
-        s.id as slot_id,
-        s.slot_number,
-        s.current_stock,
-        s.capacity,
-        s.price_override,
-        COALESCE(s.price_override, p.price) as final_price,
-        s.is_active as slot_active
-      FROM products p
-      LEFT JOIN slots s ON p.id = s.product_id AND s.machine_id = ?
-      WHERE p.id = ?
-    `,
-      [currentMachine, id]
-    );
+    if (process.env.USE_SUPABASE === "true") {
+      const supabase = db.getClient();
+      
+      // Get product info
+      const { data: productInfo, error: productError } = await supabase
+        .from("products")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-    if (product.length === 0) {
-      return res.status(404).json({
-        error: "Product not found",
-      });
-    }
+      if (productError || !productInfo) {
+        return res.status(404).json({ error: "Product not found" });
+      }
 
-    const productInfo = product[0];
-    const slots = product
-      .filter((p) => p.slot_id)
-      .map((p) => ({
-        slot_id: p.slot_id,
-        slot_number: p.slot_number,
-        current_stock: p.current_stock,
-        capacity: p.capacity,
-        final_price: p.final_price,
-        is_available: p.slot_active && p.current_stock > 0,
+      // Get slots for this product
+      const { data: slotsData, error: slotsError } = await supabase
+        .from("slots")
+        .select("*")
+        .eq("product_id", id)
+        .eq("machine_id", currentMachine);
+        
+      if (slotsError) throw slotsError;
+
+      const transformedSlots = slotsData.map(s => ({
+         slot_id: s.id,
+         slot_number: s.slot_number,
+         current_stock: s.current_stock,
+         capacity: s.capacity,
+         final_price: s.price_override || productInfo.price,
+         is_available: s.is_active && s.current_stock > 0
       }));
 
-    res.json({
-      id: productInfo.id,
-      name: productInfo.name,
-      description: productInfo.description,
-      price: productInfo.price,
-      image_url: productInfo.image_url,
-      category: productInfo.category,
-      is_active: productInfo.is_active,
-      slots,
-    });
+      res.json({
+         ...productInfo,
+         slots: transformedSlots
+      });
+    } else {
+      // MySQL Implementation
+      const product = await db.query(
+        `
+        SELECT 
+          p.*,
+          s.id as slot_id,
+          s.slot_number,
+          s.current_stock,
+          s.capacity,
+          s.price_override,
+          COALESCE(s.price_override, p.price) as final_price,
+          s.is_active as slot_active
+        FROM products p
+        LEFT JOIN slots s ON p.id = s.product_id AND s.machine_id = ?
+        WHERE p.id = ?
+      `,
+        [currentMachine, id]
+      );
+
+      if (product.length === 0) {
+        return res.status(404).json({
+          error: "Product not found",
+        });
+      }
+
+      const productInfo = product[0];
+      const slots = product
+        .filter((p) => p.slot_id)
+        .map((p) => ({
+          slot_id: p.slot_id,
+          slot_number: p.slot_number,
+          current_stock: p.current_stock,
+          capacity: p.capacity,
+          final_price: p.final_price,
+          is_available: p.slot_active && p.current_stock > 0,
+        }));
+
+      res.json({
+        id: productInfo.id,
+        name: productInfo.name,
+        description: productInfo.description,
+        price: productInfo.price,
+        image_url: productInfo.image_url,
+        category: productInfo.category,
+        is_active: productInfo.is_active,
+        slots,
+      });
+    }
   } catch (error) {
     console.error("Get product error:", error);
     res.status(500).json({

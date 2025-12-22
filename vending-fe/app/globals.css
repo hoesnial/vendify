@@ -1,33 +1,31 @@
 @import "tailwindcss";
 
 :root {
-  /* Healthcare Theme Colors - Professional Medical Blue & White */
-  --health-primary-blue: #0066cc;
-  --health-dark-blue: #004a99;
-  --health-light-blue: #3399ff;
-  --health-accent-blue: #00b4d8;
-  --health-soft-blue: #e6f3ff;
-  --health-white: #ffffff;
-  --health-light-gray: #f8f9fa;
-  --health-border: #e0e7ff;
+  /* Snack Theme Colors - Vendify (Yellow & Red) */
+  --snack-primary: #FFC107;
+  --snack-primary-dark: #FFA000;
+  --snack-accent: #E53935;
+  --snack-soft-yellow: #FFF8E1; /* Amber 50 */
+  --snack-white: #ffffff;
+  --snack-text: #6D4C41; /* Brown for text */
+  --snack-text-light: #8D6E63;
 
-  --background: #ffffff;
-  --foreground: #1a1a1a;
+  --background: #FFF8E1;
+  --foreground: #6D4C41;
 
   /* Theme variables */
-  --primary: var(--health-primary-blue);
-  --primary-dark: var(--health-dark-blue);
-  --accent: var(--health-accent-blue);
-  --accent-light: var(--health-light-blue);
-  --background-light: var(--health-soft-blue);
+  --primary: var(--snack-primary);
+  --primary-dark: var(--snack-primary-dark);
+  --accent: var(--snack-accent);
+  --background-light: var(--snack-soft-yellow);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-primary: var(--health-primary-blue);
-  --color-secondary: var(--health-accent-blue);
-  --color-accent: var(--health-light-blue);
+  --color-primary: var(--snack-primary);
+  --color-secondary: var(--snack-accent);
+  --color-accent: var(--snack-accent);
   --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   --font-display: var(--font-lexend), var(--font-sans);
@@ -42,7 +40,7 @@ html {
 }
 
 body {
-  background: linear-gradient(to bottom, #f0f7ff, #ffffff);
+  background: linear-gradient(to bottom, #FFF8E1, #FFFFFF);
   color: var(--foreground);
   font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -51,28 +49,20 @@ body {
   min-height: 100vh;
 }
 
-/* Healthcare inspired gradients */
-.gradient-blue {
+/* Snack inspired gradients */
+.gradient-primary {
   background: linear-gradient(
     135deg,
-    var(--health-primary-blue),
-    var(--health-dark-blue)
+    var(--snack-primary),
+    var(--snack-primary-dark)
   );
 }
 
-.gradient-light-blue {
+.gradient-soft {
   background: linear-gradient(
     135deg,
-    var(--health-light-blue),
-    var(--health-accent-blue)
-  );
-}
-
-.gradient-health {
-  background: linear-gradient(
-    135deg,
-    var(--health-primary-blue),
-    var(--health-accent-blue)
+    var(--snack-soft-yellow),
+    #ffffff
   );
 }
 

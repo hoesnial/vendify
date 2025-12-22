@@ -9,10 +9,7 @@ import {
   RefreshCw,
   Wifi,
   WifiOff,
-  // Settings,
-  FileText,
-  Stethoscope,
-  // Pill,
+  Store,
   ShieldCheck,
   ShoppingCart,
 } from "lucide-react";
@@ -72,65 +69,41 @@ const HomeScreen: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-6 py-10">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8 rounded-3xl border border-gray-100 bg-white/80 p-6 shadow-lg shadow-teal-50">
+        {/* Header - Yellow Theme */}
+        <div className="flex items-center justify-between mb-8 rounded-3xl bg-amber-400 p-6 shadow-lg shadow-amber-200 border border-amber-300">
           <div className="flex items-center space-x-4">
-            <Image
-              src="/MediVendLogo.png"
-              alt="MediVend Logo"
-              width={50}
-              height={50}
-              className="object-contain"
-            />
+            <div className="p-3 bg-white/30 rounded-2xl backdrop-blur-sm border border-white/20">
+              <Store className="h-8 w-8 text-amber-900" />
+            </div>
 
             <div>
-              <div className="flex items-center gap-3 text-teal-500">
-                <Stethoscope className="h-6 w-6" />
-                <p className="text-sm font-semibold tracking-wide uppercase">
-                  Apotek Digital & Vending Obat
+              <div className="flex items-center gap-3 text-amber-900/80">
+                <p className="text-sm font-bold tracking-wide uppercase">
+                  Vending Machine
                 </p>
               </div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                MediVend
+              <h1 className="text-4xl font-black text-amber-900 mb-1 tracking-tight drop-shadow-sm">
+                Vendify
               </h1>
-              <div className="flex items-center space-x-6 text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <span className="font-semibold text-gray-800">
-                    {products.length} obat tersedia
-                  </span>
-                </div>
-                <button className="flex items-center space-x-1 text-teal-400 hover:text-teal-800">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                    />
-                  </svg>
-                </button>
-              </div>
+              <p className="text-amber-900/90 font-medium text-sm">
+                Snack favoritmu, sekali tap
+              </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-4">
             {/* Connection Status */}
             {isOnline ? (
-              <div className="flex items-center border border-emerald-200 bg-emerald-50 text-emerald-500 px-4 py-2 rounded-full shadow-sm">
+              <div className="flex items-center border border-white/40 bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-full shadow-sm">
                 <Wifi className="h-4 w-4 mr-2" />
-                <span className="text-sm font-semibold tracking-wide">
+                <span className="text-sm font-bold tracking-wide">
                   Online
                 </span>
               </div>
             ) : (
-              <div className="flex items-center border border-red-200 bg-red-50 px-4 py-2 rounded-full text-red-600 shadow-sm">
+              <div className="flex items-center border border-white/40 bg-red-500 text-white px-4 py-2 rounded-full shadow-sm">
                 <WifiOff className="h-4 w-4 mr-2" />
-                <span className="text-sm font-semibold tracking-wide">
+                <span className="text-sm font-bold tracking-wide">
                   Offline
                 </span>
               </div>
@@ -139,63 +112,41 @@ const HomeScreen: React.FC = () => {
             {/* Cart Button */}
             <button
               onClick={() => setCurrentScreen("cart")}
-              className="relative flex items-center px-5 py-2 rounded-full bg-white border-2 border-teal-400 text-teal-500 shadow-md hover:bg-teal-50 transition-colors"
+              className="relative flex items-center px-5 py-2 rounded-full bg-white border-2 border-orange-400 text-orange-600 shadow-md hover:bg-orange-50 transition-colors"
               title="Lihat Keranjang"
             >
               <ShoppingCart className="h-5 w-5 mr-2" />
-              <span className="text-sm font-semibold tracking-wide">
+              <span className="text-sm font-bold tracking-wide">
                 Keranjang
               </span>
               {cartItems.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white animate-bounce">
                   {cartItems.length}
                 </span>
               )}
-            </button>
-
-            {/* Prescription Scan Button */}
-            <button
-              onClick={() => setIsPrescriptionModalOpen(true)}
-              className="flex items-center px-5 py-2 rounded-full bg-teal-400 text-white shadow-lg shadow-teal-100 hover:bg-teal-600 transition-colors"
-              title="Scan Resep Dokter"
-            >
-              <FileText className="h-5 w-5 mr-2" />
-              <span className="text-sm font-semibold tracking-wide">
-                Scan Resep
-              </span>
             </button>
 
             {/* Refresh Button */}
             <button
               onClick={loadProducts}
               disabled={isLoading}
-              className="p-2 rounded-full bg-white/80 text-teal-700 border border-gray-100 shadow-md hover:bg-gray-50 transition-colors"
+              className="p-2 rounded-full bg-white/20 text-white border border-white/30 shadow-sm hover:bg-white/30 transition-colors"
             >
               <RefreshCw
-                className={`h-5 w-5 text-gray-700 ${
+                className={`h-5 w-5 ${
                   isLoading ? "animate-spin" : ""
                 }`}
               />
             </button>
-
-            {/* Admin Button */}
-            {/* <Link href="/admin">
-              <button className="flex items-center bg-teal-600 text-white px-4 py-2 rounded-full hover:bg-teal-700 transition-colors shadow-md">
-                <Settings className="h-4 w-4 mr-2" />
-                <span className="text-sm font-semibold tracking-wide">
-                  Admin
-                </span>
-              </button>
-            </Link> */}
           </div>
         </div>
 
         {/* Products Grid */}
         {products.length === 0 ? (
-          <div className="text-center py-20 rounded-3xl border border-dashed border-gray-200 bg-white/70">
-            <div className="w-32 h-32 mx-auto mb-6 bg-teal-50 rounded-full flex items-center justify-center shadow-inner">
+          <div className="text-center py-20 rounded-3xl border border-dashed border-amber-200 bg-white/70">
+            <div className="w-32 h-32 mx-auto mb-6 bg-amber-50 rounded-full flex items-center justify-center shadow-inner">
               <svg
-                className="h-16 w-16 text-teal-400"
+                className="h-16 w-16 text-amber-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -212,22 +163,22 @@ const HomeScreen: React.FC = () => {
               Stok belum tersedia
             </h3>
             <p className="text-gray-500 mb-6">
-              Refresh panel untuk menarik data terbaru dari apotek pusat.
+              Silakan hubungi operator untuk mengisi ulang.
             </p>
             <button
               onClick={loadProducts}
-              className="inline-flex items-center bg-teal-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-teal-700 transition-colors"
+              className="inline-flex items-center bg-amber-500 text-white px-6 py-3 rounded-full shadow-lg hover:bg-amber-600 transition-colors font-bold"
             >
               <RefreshCw className="h-5 w-5 mr-2" />
               Muat ulang
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-7 rounded-3xl border-2 border-gray-100 bg-white/85 p-6 shadow-xl shadow-teal-50">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-7 rounded-3xl border-2 border-amber-100 bg-white/60 p-6 shadow-xl shadow-amber-50/50 backdrop-blur-sm">
             {products.map((product) => (
               <div
                 key={product.id}
-                className="animate-fadeIn rounded-2xl bg-white/95 ring-1 ring-gray-50/80 shadow-sm shadow-gray-100 hover:-translate-y-1 hover:ring-gray-200 hover:shadow-xl transition-transform"
+                className="animate-fadeIn rounded-2xl bg-white ring-1 ring-gray-100 shadow-sm hover:-translate-y-2 hover:shadow-xl hover:shadow-amber-100/50 hover:ring-amber-200 transition-all duration-300"
               >
                 <ProductCard
                   product={product}
@@ -240,10 +191,10 @@ const HomeScreen: React.FC = () => {
         )}
 
         {/* Footer Status */}
-        <div className="mt-8 text-center text-sm text-gray-600">
-          <div className="inline-flex items-center gap-2 rounded-full border border-teal-100 bg-white/80 px-4 py-2 shadow-sm">
-            <ShieldCheck className="h-4 w-4 text-teal-500" />
-            <p>Last update {formatTime(lastUpdate)}</p>
+        <div className="mt-8 text-center text-sm text-gray-500">
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-100 bg-white/80 px-4 py-2 shadow-sm">
+            <ShieldCheck className="h-4 w-4 text-amber-500" />
+            <p>Terakhir diperbarui {formatTime(lastUpdate)}</p>
           </div>
         </div>
       </div>

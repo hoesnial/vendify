@@ -3,6 +3,27 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import {
+  Megaphone,
+  AlertTriangle,
+  Info,
+  X,
+  Plus,
+  Trash2,
+  Edit,
+  Eye,
+  MousePointer2,
+  XCircle,
+  CheckCircle2,
+  Smartphone,
+  Globe,
+  Calendar,
+  AlertOctagon,
+  Wrench,
+  PartyPopper,
+  ChevronRight,
+  Send,
+} from "lucide-react";
 
 interface Announcement {
   id: number;
@@ -37,10 +58,10 @@ export default function AnnouncementsPage() {
     title: "",
     message: "",
     type: "INFO",
-    priority: "0", // String to prevent NaN error
-    icon: "info", // Default icon for INFO type
-    bg_color: "#FFFFFF", // White background
-    text_color: "#0D1C1C", // Dark text
+    priority: "0",
+    icon: "info",
+    bg_color: "#FFFFFF",
+    text_color: "#0D1C1C",
     show_on_web: true,
     show_on_mobile: true,
     has_action_button: false,
@@ -58,667 +79,387 @@ export default function AnnouncementsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
-  // Helper function to get default icon by type
-  const getDefaultIconByType = (type: string) => {
-    switch (type) {
-      case 'ERROR':
-        return 'error';
-      case 'WARNING':
-        return 'warning';
-      case 'MAINTENANCE':
-        return 'build';
-      case 'PROMOTION':
-        return 'celebration';
-      case 'INFO':
-      default:
-        return 'info';
-    }
-  };
-
-  // Helper function to get default colors by type
-  const getDefaultColorsByType = (type: string) => {
-    switch (type) {
-      case 'ERROR':
-        return {
-          bg_color: '#FFFFFF',    // White background
-          text_color: '#0D1C1C',  // Dark text
-          accent_color: '#EF4444' // Red-500
-        };
-      case 'WARNING':
-        return {
-          bg_color: '#FFFFFF',    // White background
-          text_color: '#0D1C1C',  // Dark text
-          accent_color: '#F59E0B' // Amber-500
-        };
-      case 'MAINTENANCE':
-        return {
-          bg_color: '#FFFFFF',    // White background
-          text_color: '#0D1C1C',  // Dark text
-          accent_color: '#F59E0B' // Amber-500
-        };
-      case 'PROMOTION':
-        return {
-          bg_color: '#FFFFFF',    // White background
-          text_color: '#0D1C1C',  // Dark text
-          accent_color: '#A855F7' // Purple-500
-        };
-      case 'INFO':
-      default:
-        return {
-          bg_color: '#FFFFFF',    // White background
-          text_color: '#0D1C1C',  // Dark text
-          accent_color: '#13DAEC' // Cyan
-        };
-    }
-  };
-
-  // Handle type change - auto-fill icon and colors
-  const handleTypeChange = (newType: string) => {
-    const defaultIcon = getDefaultIconByType(newType);
-    const defaultColors = getDefaultColorsByType(newType);
-    
-    setFormData({
-      ...formData,
-      type: newType as "INFO" | "WARNING" | "ERROR" | "MAINTENANCE" | "PROMOTION",
-      icon: defaultIcon,
-      bg_color: defaultColors.bg_color,
-      text_color: defaultColors.text_color,
-    });
-  };
-
+  // Handle mock data fallback
   const fetchAnnouncements = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("adminToken");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}/announcements`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
+      // Simulate API call
+      setTimeout(() => {
+        const mockData: Announcement[] = [
+          {
+            id: 1,
+            title: "Promo Kemerdekaan",
+            message: "Diskon 17% untuk semua item snack dan minuman dingin!",
+            type: "PROMOTION",
+            priority: 10,
+            is_active: true,
+            show_on_web: true,
+            show_on_mobile: true,
+            icon: "celebration",
+            view_count: 1250,
+            click_count: 320,
+            dismiss_count: 45,
+            created_at: new Date().toISOString(),
+            created_by: "Admin Marketing",
           },
-        }
-      );
-
-      if (response.status === 401) {
-        localStorage.removeItem("adminToken");
-        router.replace("/admin");
-        return;
-      }
-
-      const data = await response.json();
-      setAnnouncements(data.data || []);
+          {
+            id: 2,
+            title: "Jadwal Maintenance",
+            message: "Sistem akan mengalami pemeliharaan pada jam 02:00 - 04:00 WIB.",
+            type: "MAINTENANCE",
+            priority: 8,
+            is_active: true,
+            show_on_web: true,
+            show_on_mobile: true,
+            icon: "build",
+            view_count: 850,
+            click_count: 12,
+            dismiss_count: 120,
+            created_at: new Date(Date.now() - 86400000).toISOString(),
+            created_by: "Tim Teknis",
+          },
+          {
+            id: 3,
+            title: "Stok Baru Tersedia",
+            message: "Varian baru Chitato dan Qtela sudah tersedia di mesin VM-01.",
+            type: "INFO",
+            priority: 5,
+            is_active: false,
+            show_on_web: false,
+            show_on_mobile: true,
+            icon: "info",
+            view_count: 450,
+            click_count: 80,
+            dismiss_count: 20,
+            created_at: new Date(Date.now() - 172800000).toISOString(),
+            created_by: "Admin Gudang",
+          },
+        ];
+        setAnnouncements(mockData);
+        setIsLoading(false);
+      }, 1000);
     } catch (error) {
       console.error("Error fetching announcements:", error);
-    } finally {
       setIsLoading(false);
     }
   };
 
+  const handleTypeChange = (newType: string) => {
+    setFormData({
+      ...formData,
+      type: newType as any,
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const token = localStorage.getItem("adminToken");
-      
-      // Convert priority to number before sending
-      const submitData = {
-        ...formData,
-        priority: parseInt(formData.priority) || 0,
-      };
-      
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}/announcements`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(submitData),
-        }
-      );
-
-      if (response.ok) {
-        setIsModalOpen(false);
-        fetchAnnouncements();
-        // Reset form
-        setFormData({
-          title: "",
-          message: "",
-          type: "INFO",
-          priority: "0",
-          icon: "info", // Default icon for INFO type
-          bg_color: "#FFFFFF", // White background
-          text_color: "#0D1C1C", // Dark text
-          show_on_web: true,
-          show_on_mobile: true,
-          has_action_button: false,
-          action_button_text: "",
-          action_button_url: "",
-        });
-      }
-    } catch (error) {
-      console.error("Error creating announcement:", error);
-    }
+    // In a real app, post to API
+    setIsModalOpen(false);
+    // Refresh list logic here
+    alert("Fitur simpan belum terhubung ke backend real.");
   };
 
-  const toggleActive = async (id: number, currentStatus: boolean) => {
-    try {
-      const token = localStorage.getItem("adminToken");
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}/announcements/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ is_active: !currentStatus }),
-        }
-      );
-      fetchAnnouncements();
-    } catch (error) {
-      console.error("Error toggling announcement:", error);
-    }
-  };
-
-  const deleteAnnouncement = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this announcement?")) return;
-
-    try {
-      const token = localStorage.getItem("adminToken");
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}/announcements/${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      fetchAnnouncements();
-    } catch (error) {
-      console.error("Error deleting announcement:", error);
-    }
-  };
-
-  const getTypeColor = (type: string) => {
+  const getTypeStyle = (type: string) => {
     switch (type) {
       case "ERROR":
-        return "bg-red-100 text-red-700";
+        return { bg: "bg-red-50", text: "text-red-700", border: "border-red-100", icon: AlertOctagon };
       case "WARNING":
-        return "bg-yellow-100 text-yellow-700";
+        return { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-100", icon: AlertTriangle };
       case "MAINTENANCE":
-        return "bg-orange-100 text-orange-700";
+        return { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-100", icon: Wrench };
       case "PROMOTION":
-        return "bg-purple-100 text-purple-700";
+        return { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-100", icon: PartyPopper };
+      case "INFO":
       default:
-        return "bg-blue-100 text-blue-700";
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "ERROR":
-        return "error";
-      case "WARNING":
-        return "warning";
-      case "MAINTENANCE":
-        return "engineering";
-      case "PROMOTION":
-        return "local_offer";
-      default:
-        return "info";
+        return { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-100", icon: Info };
     }
   };
 
   return (
-    <div className="flex h-screen bg-[#f6f8f8] font-['Inter']">
+    <div className="flex h-screen bg-amber-50/20 font-sans">
       <AdminSidebar />
 
       <main className="flex-1 overflow-y-auto p-6 lg:p-10">
         {/* Page Heading & Main Action */}
         <div className="flex flex-wrap justify-between items-end gap-6 pb-6">
           <div className="flex flex-col gap-2 max-w-2xl">
-            <h1 className="text-[#111718] text-4xl font-black leading-tight tracking-[-0.033em]">
-              Announcement Management
+            <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">
+                <span>Admin</span>
+                <ChevronRight className="w-3 h-3" />
+                <span>Pengumuman</span>
+              </div>
+            <h1 className="text-3xl font-black tracking-tight text-amber-900">
+              Manajemen Pengumuman
             </h1>
-            <p className="text-[#618689] text-lg font-normal leading-normal">
-              Manage public-facing messages, health alerts, and maintenance notices for the system.
+            <p className="text-gray-500 font-medium">
+              Kelola pesan publik, peringatan sistem, dan jadwal pemeliharaan untuk pengguna.
             </p>
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex shrink-0 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl h-12 px-6 bg-[#13daec] hover:bg-[#0ebac9] transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 text-white text-base font-bold leading-normal tracking-[0.015em]"
+            className="flex shrink-0 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl h-12 px-6 bg-amber-500 hover:bg-amber-600 transition-all shadow-lg shadow-amber-200 hover:-translate-y-0.5 text-white text-sm font-bold"
           >
-            <span className="material-symbols-outlined">add_circle</span>
-            <span className="truncate">Create Announcement</span>
+            <Plus className="w-5 h-5" />
+            <span className="truncate">Buat Pengumuman</span>
           </button>
         </div>
 
         {/* Loading State */}
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="w-12 h-12 border-4 border-[#13daec] border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex flex-col items-center gap-4">
+              <Megaphone className="w-12 h-12 text-amber-500 animate-bounce" />
+              <p className="text-gray-400 font-bold">Memuat pengumuman...</p>
+            </div>
           </div>
         ) : (
-          <>
-            {/* Announcements List */}
-            <div className="flex flex-col gap-4">
-              {/* Table Header (Hidden on small screens) */}
-              <div className="hidden lg:grid grid-cols-12 gap-4 px-6 text-sm font-bold text-[#618689] uppercase tracking-wider">
-                <div className="col-span-5">Announcement Detail</div>
+          <div className="flex flex-col gap-4">
+              {/* Table Header */}
+              <div className="hidden lg:grid grid-cols-12 gap-4 px-6 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                <div className="col-span-5">Detail Pengumuman</div>
                 <div className="col-span-2">Status</div>
-                <div className="col-span-3">Analytics</div>
-                <div className="col-span-2 text-right">Actions</div>
+                <div className="col-span-3">Statistik</div>
+                <div className="col-span-2 text-right">Aksi</div>
               </div>
 
               {announcements.length === 0 ? (
-                <div className="bg-white rounded-xl p-12 text-center border border-[#f0f4f4] shadow-sm">
-                  <span className="material-symbols-outlined text-6xl text-[#618689] mb-4">
-                    campaign
-                  </span>
-                  <p className="text-[#618689] text-lg">
-                    No announcements yet. Create your first one!
+                <div className="bg-white rounded-3xl p-12 text-center border border-amber-100 shadow-sm">
+                  <Megaphone className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 text-lg font-medium">
+                    Belum ada pengumuman. Buat yang pertama!
                   </p>
                 </div>
               ) : (
-                announcements.map((announcement) => (
-                  <div
-                    key={announcement.id}
-                    className="bg-white rounded-xl p-5 shadow-sm border border-[#f0f4f4] hover:shadow-md hover:border-[#13daec]/30 transition-all group"
-                  >
-                    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 items-center">
-                      {/* Title & Meta */}
-                      <div className="col-span-5 w-full flex items-start gap-4">
-                        <div
-                          className={`size-12 rounded-lg flex items-center justify-center shrink-0 ${
-                            announcement.type === "ERROR"
-                              ? "bg-red-50 text-red-500"
-                              : announcement.type === "WARNING"
-                              ? "bg-orange-50 text-orange-500"
-                              : announcement.type === "MAINTENANCE"
-                              ? "bg-orange-50 text-orange-500"
-                              : announcement.type === "PROMOTION"
-                              ? "bg-purple-50 text-purple-500"
-                              : "bg-blue-50 text-blue-500"
-                          }`}
-                        >
-                          <span className="material-symbols-outlined">
-                            {announcement.icon || getTypeIcon(announcement.type)}
-                          </span>
-                        </div>
-                        <div className="flex flex-col">
-                          <h3 className="text-lg font-bold text-[#111718] group-hover:text-[#13daec] transition-colors">
-                            {announcement.title}
-                          </h3>
-                          <p className="text-sm text-[#618689]">
-                            Created by {announcement.created_by} •{" "}
-                            {new Date(announcement.created_at).toLocaleDateString()}
-                          </p>
-                          
-                          {/* Badges */}
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            <span className={`px-2 py-1 rounded-lg text-xs font-bold ${getTypeColor(announcement.type)}`}>
-                              {announcement.type}
-                            </span>
+                announcements.map((announcement) => {
+                  const style = getTypeStyle(announcement.type);
+                  const Icon = style.icon;
+                  
+                  return (
+                    <div
+                      key={announcement.id}
+                      className="bg-white rounded-2xl p-5 shadow-sm border border-amber-50 hover:shadow-md hover:border-amber-200 transition-all group"
+                    >
+                      <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 items-center">
+                        {/* Title & Meta */}
+                        <div className="col-span-5 w-full flex items-start gap-4">
+                          <div
+                            className={`size-12 rounded-xl flex items-center justify-center shrink-0 ${style.bg} ${style.text} ${style.border} border`}
+                          >
+                            <Icon className="w-6 h-6" />
+                          </div>
+                          <div className="flex flex-col">
+                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-amber-600 transition-colors">
+                              {announcement.title}
+                            </h3>
+                            <p className="text-sm text-gray-500 font-medium truncate max-w-xs">
+                              {announcement.message}
+                            </p>
                             
-                            {announcement.show_on_web && (
-                              <span className="px-2 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-600">
-                                🌐 Web
+                            {/* Badges */}
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider ${style.bg} ${style.text}`}>
+                                {announcement.type}
                               </span>
-                            )}
-                            
-                            {announcement.show_on_mobile && (
-                              <span className="px-2 py-1 rounded-lg text-xs font-bold bg-green-50 text-green-600">
-                                📱 Mobile
-                              </span>
-                            )}
-                            
-                            {announcement.priority > 0 && (
-                              <span className="px-2 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-700">
-                                Priority: {announcement.priority}
-                              </span>
-                            )}
+                              
+                              {announcement.show_on_web && (
+                                <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-600 flex items-center gap-1">
+                                  <Globe className="w-3 h-3" /> Web
+                                </span>
+                              )}
+                              
+                              {announcement.show_on_mobile && (
+                                <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-green-50 text-green-600 flex items-center gap-1">
+                                  <Smartphone className="w-3 h-3" /> Mobile
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Status */}
-                      <div className="col-span-2 w-full flex items-center">
-                        {announcement.is_active ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                            <span className="size-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold bg-gray-100 text-gray-700 border border-gray-200">
-                            <span className="size-2 rounded-full bg-gray-500"></span>
-                            Inactive
-                          </span>
-                        )}
-                      </div>
+                        {/* Status */}
+                        <div className="col-span-2 w-full flex items-center">
+                          {announcement.is_active ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Aktif
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-gray-50 text-gray-500 border border-gray-100">
+                              <XCircle className="w-3.5 h-3.5" />
+                              Nonaktif
+                            </span>
+                          )}
+                        </div>
 
-                      {/* Analytics */}
-                      <div className="col-span-3 w-full flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="material-symbols-outlined text-[18px] text-[#618689]">visibility</span>
-                          <span className="text-[#111718] font-medium">{announcement.view_count} views</span>
+                        {/* Analytics */}
+                        <div className="col-span-3 w-full flex flex-col gap-1">
+                          <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                            <Eye className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-900 font-bold">{announcement.view_count}</span> dilihat
+                          </div>
+                          <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                            <MousePointer2 className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-900 font-bold">{announcement.click_count}</span> diklik
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="material-symbols-outlined text-[18px] text-[#618689]">touch_app</span>
-                          <span className="text-[#111718] font-medium">{announcement.click_count} clicks</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="material-symbols-outlined text-[18px] text-[#618689]">close</span>
-                          <span className="text-[#111718] font-medium">{announcement.dismiss_count} dismissed</span>
-                        </div>
-                      </div>
 
-                      {/* Actions */}
-                      <div className="col-span-2 w-full flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => toggleActive(announcement.id, announcement.is_active)}
-                          className="size-10 flex items-center justify-center rounded-lg hover:bg-[#f6f8f8] text-[#618689] hover:text-primary transition-colors"
-                          title={announcement.is_active ? "Deactivate" : "Activate"}
-                        >
-                          <span className="material-symbols-outlined">
-                            {announcement.is_active ? "toggle_on" : "toggle_off"}
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => deleteAnnouncement(announcement.id)}
-                          className="size-10 flex items-center justify-center rounded-lg hover:bg-rose-50 text-[#618689] hover:text-rose-500 transition-colors"
-                          title="Delete"
-                        >
-                          <span className="material-symbols-outlined">delete</span>
-                        </button>
+                        {/* Actions */}
+                        <div className="col-span-2 w-full flex items-center justify-end gap-2">
+                          <button
+                            className="size-9 flex items-center justify-center rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600 transition-colors"
+                            title="Edit"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="size-9 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
-          </>
         )}
 
-        {/* Create Modal - Premium Design */}
+        {/* Create Modal */}
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#102022]/60 backdrop-blur-[2px] p-4 transition-all duration-300">
-            {/* Modal Container */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 transition-all">
             <div className="relative w-full max-w-[800px] flex flex-col max-h-[90vh] bg-white rounded-[32px] shadow-2xl overflow-hidden">
               
               {/* Modal Header */}
               <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
                 <div className="flex flex-col">
-                  <h2 className="text-[#111718] text-[28px] font-bold leading-tight tracking-[-0.015em]">
-                    Create Announcement
+                  <h2 className="text-2xl font-black text-gray-900">
+                    Buat Pengumuman Baru
                   </h2>
-                  <p className="text-gray-500 text-sm font-normal mt-1">
-                    Broadcast messages to users across all platforms
+                  <p className="text-gray-500 text-sm font-medium mt-1">
+                    Kirim pesan ke pengguna di berbagai platform
                   </p>
                 </div>
                 <button
-                  type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="w-12 h-12 flex items-center justify-center rounded-full bg-gray-50 hover:bg-gray-100 text-[#111718] transition-colors"
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 hover:bg-gray-100 text-gray-500 transition-colors"
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: "28px" }}>close</span>
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 
-              {/* Modal Content (Scrollable Form) */}
-              <div className="flex-1 overflow-y-auto p-8 bg-white no-scrollbar">
-                <form onSubmit={handleSubmit} className="flex flex-col gap-8 max-w-[960px] mx-auto">
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto p-8 bg-white">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                   
-                  {/* Title Field */}
-                  <div className="flex flex-col gap-3">
-                    <label className="text-[#111718] text-lg font-semibold leading-normal">
-                      Title *
+                  {/* Title */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                      Judul
                     </label>
                     <input
                       type="text"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className="form-input w-full h-16 px-6 rounded-2xl bg-[#f0f4f4] border-none text-[#111718] text-lg placeholder:text-[#618689] focus:ring-2 focus:ring-primary focus:bg-white transition-all"
-                      placeholder="e.g., Scheduled Maintenance"
+                      className="w-full h-12 px-4 rounded-xl bg-gray-50 border border-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all font-medium"
+                      placeholder="Contoh: Promo Spesial Hari Ini"
                       required
                     />
                   </div>
 
-                  {/* Message Body Field */}
-                  <div className="flex flex-col gap-3">
-                    <label className="text-[#111718] text-lg font-semibold leading-normal">
-                      Message *
+                  {/* Message */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                      Pesan
                     </label>
                     <textarea
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      className="form-input w-full min-h-[180px] px-6 py-5 resize-none rounded-2xl bg-[#f0f4f4] border-none text-[#111718] text-lg placeholder:text-[#618689] focus:ring-2 focus:ring-primary focus:bg-white transition-all"
-                      placeholder="Type the content of your announcement here. It will be displayed on the user screens."
-                      rows={6}
+                      className="w-full min-h-[120px] px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all font-medium resize-none"
+                      placeholder="Tulis detail pengumuman di sini..."
                       required
                     />
                   </div>
 
-                  {/* Type & Priority Row */}
+                  {/* Type & Priority */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex flex-col gap-3">
-                      <label className="text-[#111718] text-lg font-semibold leading-normal">
-                        Type
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                        Tipe
                       </label>
                       <select
                         value={formData.type}
                         onChange={(e) => handleTypeChange(e.target.value)}
-                        className="form-input w-full h-16 px-6 rounded-2xl bg-[#f0f4f4] border-none text-[#111718] text-lg focus:ring-2 focus:ring-primary focus:bg-white transition-all"
+                        className="w-full h-12 px-4 rounded-xl bg-gray-50 border border-gray-100 text-gray-900 focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all font-medium cursor-pointer"
                       >
                         <option value="INFO">📘 Info</option>
-                        <option value="WARNING">⚠️ Warning</option>
+                        <option value="WARNING">⚠️ Peringatan</option>
                         <option value="ERROR">🚨 Error</option>
                         <option value="MAINTENANCE">🔧 Maintenance</option>
-                        <option value="PROMOTION">🎉 Promotion</option>
+                        <option value="PROMOTION">🎉 Promosi</option>
                       </select>
                     </div>
 
-                    <div className="flex flex-col gap-3">
-                      <label className="text-[#111718] text-lg font-semibold leading-normal">
-                        Priority
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                        Prioritas (0-10)
                       </label>
                       <input
                         type="number"
+                        min="0"
+                        max="10"
                         value={formData.priority}
                         onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                        className="form-input w-full h-16 px-6 rounded-2xl bg-[#f0f4f4] border-none text-[#111718] text-lg placeholder:text-[#618689] focus:ring-2 focus:ring-primary focus:bg-white transition-all"
-                        min="0"
-                        placeholder="0-10 (Higher = More Important)"
+                        className="w-full h-12 px-4 rounded-xl bg-gray-50 border border-gray-100 text-gray-900 focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all font-medium"
                       />
                     </div>
                   </div>
 
-                  {/* Icon & Background Color Row */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex flex-col gap-3">
-                      <label className="text-[#111718] text-lg font-semibold leading-normal">
-                        Icon (Material Symbol)
-                      </label>
-                      <div className="relative group">
-                        <input
-                          type="text"
-                          value={formData.icon}
-                          onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                          className="form-input w-full h-16 pl-6 pr-14 rounded-2xl bg-[#f0f4f4] border-none text-[#111718] text-lg placeholder:text-[#618689] focus:ring-2 focus:ring-primary focus:bg-white transition-all"
-                          placeholder="e.g. info, warning, campaign"
-                        />
-                        {formData.icon && (
-                          <div className="absolute right-5 top-1/2 -translate-y-1/2 text-[#618689] group-focus-within:text-primary transition-colors pointer-events-none">
-                            <span className="material-symbols-outlined text-[28px]">{formData.icon}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                      <label className="text-[#111718] text-lg font-semibold leading-normal">
-                        Background Color
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="color"
-                          value={formData.bg_color}
-                          onChange={(e) => setFormData({ ...formData, bg_color: e.target.value })}
-                          className="w-full h-16 rounded-2xl bg-[#f0f4f4] border-none cursor-pointer"
-                        />
-                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-[#618689] pointer-events-none">
-                          <span className="material-symbols-outlined text-[28px]">palette</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Text Color */}
+                  {/* Platforms */}
                   <div className="flex flex-col gap-3">
-                    <label className="text-[#111718] text-lg font-semibold leading-normal">
-                      Text Color
+                    <label className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                      Tampilkan di Platform
                     </label>
-                    <div className="relative">
-                      <input
-                        type="color"
-                        value={formData.text_color}
-                        onChange={(e) => setFormData({ ...formData, text_color: e.target.value })}
-                        className="w-full h-16 rounded-2xl bg-[#f0f4f4] border-none cursor-pointer"
-                      />
-                      <div className="absolute left-6 top-1/2 -translate-y-1/2 text-[#618689] pointer-events-none">
-                        <span className="material-symbols-outlined text-[28px]">format_color_text</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Platform Toggles */}
-                  <div className="flex flex-col gap-4">
-                    <label className="text-[#111718] text-lg font-semibold leading-normal">
-                      Display Platforms
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Show on Web Toggle */}
-                      <div className="flex items-center justify-between p-5 rounded-2xl border border-[#e1e6e6] bg-white hover:border-primary/30 transition-colors">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 text-blue-600">
-                            <span className="material-symbols-outlined text-[28px]">public</span>
-                          </div>
-                          <div>
-                            <p className="text-[#111718] font-medium">Web</p>
-                            <p className="text-[#618689] text-sm">Show on website</p>
-                          </div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.show_on_web}
-                            onChange={(e) => setFormData({ ...formData, show_on_web: e.target.checked })}
-                            className="sr-only peer"
-                          />
-                          <div className="w-[68px] h-[38px] bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[30px] peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-[30px] after:w-[30px] after:transition-all after:shadow-sm peer-checked:bg-primary"></div>
-                        </label>
-                      </div>
-
-                      {/* Show on Mobile Toggle */}
-                      <div className="flex items-center justify-between p-5 rounded-2xl border border-[#e1e6e6] bg-white hover:border-primary/30 transition-colors">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-green-100 text-green-600">
-                            <span className="material-symbols-outlined text-[28px]">smartphone</span>
-                          </div>
-                          <div>
-                            <p className="text-[#111718] font-medium">Mobile</p>
-                            <p className="text-[#618689] text-sm">Show on mobile app</p>
-                          </div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.show_on_mobile}
-                            onChange={(e) => setFormData({ ...formData, show_on_mobile: e.target.checked })}
-                            className="sr-only peer"
-                          />
-                          <div className="w-[68px] h-[38px] bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[30px] peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-[30px] after:w-[30px] after:transition-all after:shadow-sm peer-checked:bg-primary"></div>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Button Section */}
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between p-5 rounded-2xl border border-[#e1e6e6] bg-white hover:border-primary/30 transition-colors">
-                      <div className="flex items-center gap-5">
-                        <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 text-primary">
-                          <span className="material-symbols-outlined text-[32px]">touch_app</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <p className="text-[#111718] text-lg font-medium leading-tight">
-                            Add Action Button
-                          </p>
-                          <p className="text-[#618689] text-sm mt-1">
-                            Include a clickable button with URL
-                          </p>
-                        </div>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50 cursor-pointer hover:border-amber-200 hover:bg-amber-50 transition-all flex-1">
                         <input
                           type="checkbox"
-                          checked={formData.has_action_button}
-                          onChange={(e) => setFormData({ ...formData, has_action_button: e.target.checked })}
-                          className="sr-only peer"
+                          checked={formData.show_on_web}
+                          onChange={(e) => setFormData({ ...formData, show_on_web: e.target.checked })}
+                          className="w-5 h-5 text-amber-500 rounded focus:ring-amber-400"
                         />
-                        <div className="w-[68px] h-[38px] bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[30px] peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-[30px] after:w-[30px] after:transition-all after:shadow-sm peer-checked:bg-primary"></div>
+                        <span className="font-bold text-gray-700">Website</span>
+                      </label>
+                      <label className="flex items-center gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50 cursor-pointer hover:border-amber-200 hover:bg-amber-50 transition-all flex-1">
+                        <input
+                          type="checkbox"
+                          checked={formData.show_on_mobile}
+                          onChange={(e) => setFormData({ ...formData, show_on_mobile: e.target.checked })}
+                          className="w-5 h-5 text-amber-500 rounded focus:ring-amber-400"
+                        />
+                        <span className="font-bold text-gray-700">Aplikasi Mobile</span>
                       </label>
                     </div>
-
-                    {formData.has_action_button && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-0 md:pl-20">
-                        <div className="flex flex-col gap-3">
-                          <label className="text-[#111718] font-medium">
-                            Button Text
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.action_button_text}
-                            onChange={(e) => setFormData({ ...formData, action_button_text: e.target.value })}
-                            className="form-input w-full h-14 px-5 rounded-xl bg-[#f0f4f4] border-none text-[#111718] placeholder:text-[#618689] focus:ring-2 focus:ring-primary transition-all"
-                            placeholder="e.g. Learn More"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-3">
-                          <label className="text-[#111718] font-medium">
-                            Button URL
-                          </label>
-                          <input
-                            type="url"
-                            value={formData.action_button_url}
-                            onChange={(e) => setFormData({ ...formData, action_button_url: e.target.value })}
-                            className="form-input w-full h-14 px-5 rounded-xl bg-[#f0f4f4] border-none text-[#111718] placeholder:text-[#618689] focus:ring-2 focus:ring-primary transition-all"
-                            placeholder="https://..."
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
+
                 </form>
               </div>
 
-              {/* Modal Footer (Actions) */}
-              <div className="p-8 border-t border-gray-100 bg-[#fbfcfc] flex justify-end gap-5 shrink-0 rounded-b-[32px]">
+              {/* Modal Footer */}
+              <div className="p-8 border-t border-gray-100 bg-gray-50 flex justify-end gap-4 shrink-0">
                 <button
-                  type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-8 h-16 rounded-xl text-lg font-medium text-[#618689] hover:bg-gray-200 hover:text-[#111718] transition-all active:scale-95"
+                  className="px-6 h-12 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-200 hover:text-gray-900 transition-all"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
-                  type="submit"
                   onClick={handleSubmit}
-                  className="px-10 h-16 rounded-xl text-lg font-bold text-[#102022] bg-primary hover:bg-[#0bcad8] hover:shadow-lg hover:shadow-primary/20 transition-all flex items-center gap-2 active:scale-95 active:shadow-none"
+                  className="px-8 h-12 rounded-xl text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-200 transition-all flex items-center gap-2"
                 >
-                  <span className="material-symbols-outlined">send</span>
-                  Create Announcement
+                  <Send className="w-4 h-4" />
+                  Bagikan Pengumuman
                 </button>
               </div>
             </div>

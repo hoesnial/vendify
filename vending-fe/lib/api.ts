@@ -117,8 +117,29 @@ export const vendingAPI = {
     };
   },
 
+  getProducts: async (): Promise<{ products: Product[] }> => {
+    const response = await api.get("/products");
+    return {
+        products: response.data.products || [],
+    };
+  },
+
   getProduct: async (id: number): Promise<Product> => {
     const response = await api.get(`/products/${id}`);
+    return response.data;
+  },
+
+  createProduct: async (formData: FormData): Promise<Product> => {
+    const response = await api.post("/products", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+
+  updateProduct: async (id: number, formData: FormData): Promise<Product> => {
+    const response = await api.put(`/products/${id}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data;
   },
 
@@ -188,6 +209,14 @@ export const vendingAPI = {
       status,
     });
     return response.data;
+  },
+
+  assignSlot: async (machineId: string = "VM01", slotId: number, productId: number) => {
+      const response = await api.post(`/machines/${machineId}/slots/assign`, {
+          slot_id: slotId,
+          product_id: productId
+      });
+      return response.data;
   },
 
   // Health Assistant
@@ -288,10 +317,21 @@ export const vendingAPI = {
     
     const response = await api.get("/users/all", {
       headers: {
-        Authorization: `Bearer ${adminToken}`,
+         Authorization: `Bearer ${adminToken}`,
       },
     });
     return response.data;
+  },
+
+  // Stock Management
+  updateStock: async (data: {
+      slot_id: number;
+      quantity: number;
+      change_type: string;
+      reason?: string;
+  }) => {
+     const response = await api.post("/stock/update", data);
+     return response.data;
   },
 };
 

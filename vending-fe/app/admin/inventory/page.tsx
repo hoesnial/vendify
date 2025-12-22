@@ -3,6 +3,28 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import {
+  Package,
+  Search,
+  Plus,
+  Filter,
+  AlertTriangle,
+  XCircle,
+  CheckCircle2,
+  Thermometer,
+  History,
+  TrendingUp,
+  ChevronRight,
+  Bell,
+  Edit,
+  HelpCircle,
+  RefreshCw,
+  ArrowLeft,
+  QrCode,
+} from "lucide-react";
+import ProductForm from "@/components/admin/ProductForm";
+import StockForm from "@/components/admin/StockForm";
+import SlotManager from "@/components/admin/SlotManager";
 
 interface Product {
   id: string;
@@ -13,6 +35,7 @@ interface Product {
   capacity: number;
   status: "out-of-stock" | "low-stock" | "in-stock";
   image: string;
+  slot_id: number;
 }
 
 interface ActivityLog {
@@ -32,60 +55,17 @@ export default function InventoryPage() {
   >("all");
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [view, setView] = useState<"list" | "product-form" | "stock-form" | "slot-manager">("list");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalSKUs: 0,
     lowStockAlerts: 0,
     criticalEmpty: 0,
     storageTemp: 4.2,
   });
-
-  const [productsMock] = useState<Product[]>([
-    {
-      id: "1",
-      name: "Ibuprofen 200mg",
-      sku: "89902",
-      slot: "A4",
-      current: 0,
-      capacity: 40,
-      status: "out-of-stock",
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuDiK7NkRor0OsN0X32yzJxWdjPMXpHpevg3EzwLV3VPAZQMaJ-JggSeo4jNVcK-Flx5-GzBYWfEQEgLskRPx8F_wdoehvOehUv4Oa726JGOxMVBXwXCFi2Oov9e4_StpV8YrOmuDOK6UUcn_71TcxznClYejQivbc699viU1HPsP4j93yOnQm3CiIUu1smKzJ44I2x1eXtpkZUP__f_q1Np8fuHEx2cBUvDerzH_kTCSbEK06ziRy_157x6nq5gEM9uMlRBYSbjHw8",
-    },
-    {
-      id: "2",
-      name: "Amoxicillin 500mg",
-      sku: "11204",
-      slot: "B2",
-      current: 4,
-      capacity: 30,
-      status: "low-stock",
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuC4-iffvx82ZD_rdzTXWhhOrCO7-aEz3oAchTrjQwBCNz1vvC5OJGEI_ziZ3QfTuDXpwMXUsNJ0n5X_bo3xbMu_fWkmopSxPYnGMNBC8lyAjgrIDky1B3UtXZ5ZyukDW0-VpjugpbD1rT1QuwUzpzR1u7Ftgr-Z0mhcI9JUePaRBSbClkVi2AwPOGBkgf7DKjVLaeHRrrCAOdFOWCaz9HkIAhVu2QpedQ1YLxOw0SaD6EdbqBPcPgJS_ODUA9nsn-PrjE8WEqlpFig",
-    },
-    {
-      id: "3",
-      name: "Cetirizine 10mg",
-      sku: "44021",
-      slot: "C1",
-      current: 42,
-      capacity: 50,
-      status: "in-stock",
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuDqJgJ9RI2LOak3VFMHoX4XzzZS2iIxyb7KjbqjEYuQ9mCxjzWMQSLwI1S1mu_SO5viBUWrQK0rmaHVsnyedJZHTKViuPa0hctnSqBumrFo2SyTHlihHBKsYvBeTWOqda9uL8mBWisBWZFW6NVh8lFLzbBccmbm51qAgVFwsRCCAb0es4uHeFI1SIb2T6FOJY-tU6nqNjdj0ZQ3iqHn0TuFA-vJk0nExu_6Vik8dS_1hqw3j8Te13LFwrtjgxFqId7B3P8lQGlCPhM",
-    },
-    {
-      id: "4",
-      name: "Multivitamin Daily",
-      sku: "90022",
-      slot: "C2",
-      current: 18,
-      capacity: 25,
-      status: "in-stock",
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuB5qz1idAs_vCW00b0RoDdoWLPsYaurz8gu2NYspJaaUG7c1bKCzjopkbwYHCTksn6rCpkH5W6oRQuJhQqUF7u-4jih_eUAestfHwTU2o6nJG2vvifHKsvSGKzYWUU0TaMStTFuO9jxry8FqTqVnRqLhS8zRKNRUyykVt-YZ25Mz2dnqB56DOkLoL-Y2IWUf-MgtW9EYGlE21AaMrhvyeFXfiusNBp_OKxcG7Z_dXBAK_O1oQtXRsZyuX2-ZDDN7lPc0UJDOp15W-Y",
-    },
-  ]);
-
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
 
   useEffect(() => {
@@ -101,32 +81,52 @@ export default function InventoryPage() {
   }, [router]);
 
   const fetchProducts = async () => {
-    setIsLoading(true);
     try {
+      setIsLoading(true);
+      setError(null);
       const { vendingAPI } = await import("@/lib/api");
-      const response = await vendingAPI.getAvailableProducts();
+      const response = await vendingAPI.getProducts();
 
       // Transform API data to match our Product interface
-      const transformedProducts: Product[] = response.products.map((p) => {
-        const stockPercentage =
-          p.current_stock && p.slot_id
-            ? (p.current_stock / 50) * 100 // Assuming max capacity 50
-            : 0;
+      const transformedProducts: Product[] = [];
 
-        let status: "out-of-stock" | "low-stock" | "in-stock" = "in-stock";
-        if (stockPercentage === 0) status = "out-of-stock";
-        else if (stockPercentage < 20) status = "low-stock";
+      response.products.forEach((p: any) => {
+          if (p.slots && p.slots.length > 0) {
+              p.slots.forEach((s: any) => {
+                  const stockPercentage = s.current_stock && s.capacity
+                    ? (s.current_stock / s.capacity) * 100
+                    : 0;
+                  
+                  let status: "out-of-stock" | "low-stock" | "in-stock" = "in-stock";
+                  if (s.current_stock === 0) status = "out-of-stock";
+                  else if (stockPercentage < 20) status = "low-stock";
 
-        return {
-          id: String(p.id),
-          name: p.name,
-          sku: String(p.id).padStart(5, "0"),
-          slot: p.slot_number ? `A${p.slot_number}` : "N/A",
-          current: p.current_stock || 0,
-          capacity: 50, // Default capacity
-          status,
-          image: p.image_url || "/placeholder-product.png",
-        };
+                  transformedProducts.push({
+                      id: `${p.id}-${s.slot_id}`, // Unique ID for key
+                      name: p.name,
+                      sku: String(p.id).padStart(5, "0"),
+                      slot: `A${s.slot_number}`,
+                      current: s.current_stock || 0,
+                      capacity: s.capacity || 50,
+                      status,
+                      image: p.image_url || "/images/placeholder-product.jpg",
+                      slot_id: s.slot_id
+                  });
+              });
+          } else {
+              // Product without slot
+               transformedProducts.push({
+                  id: String(p.id),
+                  name: p.name,
+                  sku: String(p.id).padStart(5, "0"),
+                  slot: "N/A",
+                  current: 0,
+                  capacity: 50,
+                  status: "out-of-stock",
+                  image: p.image_url || "/images/placeholder-product.jpg",
+                  slot_id: 0
+               });
+          }
       });
 
       setProducts(transformedProducts);
@@ -144,15 +144,15 @@ export default function InventoryPage() {
         totalSKUs,
         lowStockAlerts: lowStock,
         criticalEmpty: outOfStock,
-        storageTemp: 4.2,
+        storageTemp: 4.2, // Temperature comes from machine status usually, mocking strictly temp
       });
 
       // Fetch stock logs
       await fetchStockLogs();
     } catch (error) {
       console.error("Failed to fetch products:", error);
-      // Use mock data as fallback
-      setProducts(productsMock);
+      setError("Gagal memuat data stok dari server. Pastikan backend aktif.");
+      setProducts([]); // Clear products on error
     } finally {
       setIsLoading(false);
     }
@@ -168,11 +168,8 @@ export default function InventoryPage() {
         response.logs?.map(
           (log: {
             id: number;
-            slot_id: number;
             change_type: string;
             quantity_change: number;
-            stock_before: number;
-            stock_after: number;
             quantity_before: number;
             quantity_after: number;
             created_at: string;
@@ -182,28 +179,28 @@ export default function InventoryPage() {
           }) => {
             const timeAgo = getTimeAgo(new Date(log.created_at));
             let type: "refill" | "alert" | "error" = "refill";
-            let title = "Stock Updated";
+            let title = "Stok Diperbarui";
 
             if (log.change_type === "RESTOCK") {
               type = "refill";
-              title = "Refill Completed";
+              title = "Restock Selesai";
             } else if (log.change_type === "DISPENSE") {
               type = "alert";
-              title = "Product Dispensed";
+              title = "Produk Terjual";
             } else if (log.change_type === "AUDIT") {
               type = "error";
-              title = "Stock Audit";
+              title = "Audit Stok";
             }
 
             return {
               id: String(log.id),
               type,
               title,
-              user: log.performed_by || "System Automated",
+              user: log.performed_by || "Sistem Otomatis",
               time: timeAgo,
-              message: `${log.product_name || `Slot ${log.slot_number}`}: ${
+              message: `${log.product_name || `Slot ${log.slot_number || "?"}`}: ${
                 log.quantity_before
-              } → ${log.quantity_after} units (${
+              } → ${log.quantity_after} unit (${
                 log.quantity_change > 0 ? "+" : ""
               }${log.quantity_change})`,
             };
@@ -213,7 +210,49 @@ export default function InventoryPage() {
       setActivityLogs(logs);
     } catch (error) {
       console.error("Failed to fetch stock logs:", error);
+      // No fallback logs
+      setActivityLogs([]);
     }
+  };
+  const handleAdd = () => {
+      setEditingProduct(null);
+      setView("product-form");
+  };
+
+  const handleEdit = async (product: Product) => {
+    setIsLoading(true);
+    try {
+        const { vendingAPI } = await import("@/lib/api");
+        // product.id might be composite "productId-slotId" due to flattening
+        const rawId = product.id.toString().split("-")[0];
+        const productId = Number(rawId);
+
+        if (isNaN(productId)) {
+            throw new Error("Invalid Product ID");
+        }
+
+        // We need to fetch the full product details because Inventory Product type is a subset/different view
+        const fullProduct = await vendingAPI.getProduct(productId);
+        setEditingProduct(fullProduct);
+        setView("product-form");
+    } catch (error) {
+        console.error("Failed to fetch product details", error);
+        alert("Gagal memuat detail produk.");
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const handleStock = (product: Product) => {
+      setSelectedProduct(product);
+      setView("stock-form");
+  };
+
+  const handleBack = () => {
+      setView("list");
+      setSelectedProduct(null);
+      setEditingProduct(null);
+      fetchProducts(); // Refresh list on return
   };
 
   const getTimeAgo = (date: Date) => {
@@ -223,22 +262,22 @@ export default function InventoryPage() {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return "Just now";
-    if (minutes < 60) return `${minutes} min${minutes > 1 ? "s" : ""} ago`;
-    if (hours < 24) return `${hours} hr${hours > 1 ? "s" : ""} ago`;
-    return `${days} day${days > 1 ? "s" : ""} ago`;
+    if (minutes < 1) return "Baru saja";
+    if (minutes < 60) return `${minutes} mnt lalu`;
+    if (hours < 24) return `${hours} jam lalu`;
+    return `${days} hari lalu`;
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "out-of-stock":
-        return "border-red-500";
+        return "border-l-4 border-l-red-500 bg-red-50/10";
       case "low-stock":
-        return "border-orange-400";
+        return "border-l-4 border-l-orange-400 bg-amber-50/30";
       case "in-stock":
-        return "border-green-500";
+        return "border-l-4 border-l-green-500";
       default:
-        return "border-gray-300";
+        return "border-l-4 border-l-gray-300";
     }
   };
 
@@ -246,25 +285,23 @@ export default function InventoryPage() {
     switch (status) {
       case "out-of-stock":
         return (
-          <span className="text-sm font-semibold text-red-500 flex items-center gap-1">
-            <span className="material-symbols-outlined text-lg">error</span> Out
-            of Stock
+          <span className="text-xs font-bold text-red-600 flex items-center gap-1 bg-red-100 px-2 py-1 rounded-full">
+            <XCircle className="h-3 w-3" />
+            Stok Habis
           </span>
         );
       case "low-stock":
         return (
-          <span className="text-sm font-semibold text-orange-500 flex items-center gap-1">
-            <span className="material-symbols-outlined text-lg">warning</span>{" "}
-            Low Stock
+          <span className="text-xs font-bold text-orange-600 flex items-center gap-1 bg-orange-100 px-2 py-1 rounded-full">
+            <AlertTriangle className="h-3 w-3" />
+            Menipis
           </span>
         );
       case "in-stock":
         return (
-          <span className="text-sm font-semibold text-green-600 flex items-center gap-1">
-            <span className="material-symbols-outlined text-lg">
-              check_circle
-            </span>{" "}
-            In Stock
+          <span className="text-xs font-bold text-green-600 flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
+            <CheckCircle2 className="h-3 w-3" />
+            Tersedia
           </span>
         );
       default:
@@ -305,47 +342,123 @@ export default function InventoryPage() {
   ).length;
 
   return (
-    <div className="flex h-screen bg-[#f6f8f8] font-['Inter']">
+    <div className="flex h-screen bg-amber-50/20 font-sans">
       <AdminSidebar />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-y-auto">
         {/* Header Section */}
-        <header className="px-8 py-6 flex items-end justify-between">
+        <header className="px-8 py-6 flex items-end justify-between bg-white/50 backdrop-blur-sm border-b border-amber-100 sticky top-0 z-10">
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2 text-[#618689] text-sm mb-1">
+             <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">
               <span>Admin</span>
-              <span className="material-symbols-outlined text-[16px]">
-                chevron_right
-              </span>
-              <span>Stock Management</span>
+              <ChevronRight className="h-3 w-3" />
+              <span>Manajemen Stok</span>
+              {view !== "list" && (
+                <>
+                    <ChevronRight className="h-3 w-3" />
+                    <span className="text-amber-600">{view === "product-form" ? (editingProduct ? "Edit Produk" : "Tambah Produk") : "Isi Stok"}</span>
+                </>
+              )}
             </div>
-            <h2 className="text-3xl font-black tracking-tight text-[#111718]">
-              Inventory Overview
-            </h2>
-            <p className="text-[#618689]">
-              Monitor product levels and manage reorders for Machine #402
-            </p>
+            
+            <div className="flex items-center gap-4">
+                {view !== "list" && (
+                    <button 
+                        onClick={handleBack}
+                        className="p-2 -ml-2 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600 transition-colors"
+                    >
+                        <ArrowLeft className="w-8 h-8" />
+                    </button>
+                )}
+                <div>
+                    <h2 className="text-3xl font-black tracking-tight text-amber-900">
+                    {view === "list" ? "Stok Produk" : view === "stock-form" ? "Atur Stok Produk" : (editingProduct ? "Edit Produk" : "Produk Baru")}
+                    </h2>
+                    <p className="text-gray-500 font-medium">
+                    {view === "list" ? "Monitor level produk & atur restock • Mesin #402" : 
+                     view === "stock-form" ? `Update stok untuk ${selectedProduct?.name}` : 
+                     "Kelola detail produk vending machine."}
+                    </p>
+                </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="size-12 rounded-xl flex items-center justify-center bg-white border border-[#dbe5e6] text-[#618689] hover:text-[#13daec] transition-colors shadow-sm">
-              <span className="material-symbols-outlined">notifications</span>
-            </button>
-            <button className="h-12 px-6 rounded-xl bg-[#111718] text-white font-bold flex items-center gap-2 shadow-lg hover:shadow-xl hover:translate-y-[-1px] transition-all">
-              <span className="material-symbols-outlined">add</span>
-              <span>Add Product</span>
-            </button>
-          </div>
+          
+          {view === "list" && (
+            <div className="flex items-center gap-3">
+                <button
+                onClick={() => fetchProducts()}
+                className="h-12 w-12 rounded-xl flex items-center justify-center bg-white border border-amber-100 text-gray-400 hover:text-amber-500 hover:border-amber-300 transition-all shadow-sm"
+                title="Refresh Data"
+                >
+                <RefreshCw className={`h-5 w-5 ${isLoading ? "animate-spin" : ""}`} />
+                </button>
+                <button
+                    onClick={() => setView("slot-manager")}
+                    className="h-12 px-6 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold flex items-center gap-2 transition-all mr-3"
+                >
+                    <Filter className="h-5 w-5" />
+                    <span>Atur Slot</span>
+                </button>
+                <button 
+                onClick={handleAdd}
+                className="h-12 px-6 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold flex items-center gap-2 shadow-lg shadow-amber-200 hover:shadow-xl hover:-translate-y-0.5 transition-all"
+                >
+                <Plus className="h-5 w-5" />
+                <span>Tambah Produk</span>
+                </button>
+            </div>
+          )}
         </header>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-8 pb-32">
-          {isLoading ? (
+          {view === "product-form" ? (
+              <div className="bg-white rounded-[32px] p-8 shadow-lg shadow-amber-50 border border-amber-100 max-w-3xl mx-auto">
+                  <ProductForm 
+                    product={editingProduct} 
+                    onSuccess={handleBack} 
+                    onCancel={handleBack} 
+                  />
+              </div>
+          ) : view === "stock-form" && selectedProduct ? (
+               <div className="bg-white rounded-[32px] p-8 shadow-lg shadow-amber-50 border border-amber-100 max-w-2xl mx-auto">
+               <div className="bg-white rounded-[32px] p-8 shadow-lg shadow-amber-50 border border-amber-100 max-w-2xl mx-auto">
+                  <StockForm
+                    slotId={selectedProduct.slot_id}
+                    productName={selectedProduct.name}
+                    currentStock={selectedProduct.current}
+                    capacity={selectedProduct.capacity}
+                    onSuccess={handleBack}
+                    onCancel={handleBack}
+                  />
+               </div>
+               </div>
+          ) : view === "slot-manager" ? (
+             <SlotManager 
+                products={products.map(p => ({ id: p.id, name: p.name, image: p.image }))} 
+                onClose={handleBack} 
+             />
+          ) : (
+            <>
+          {error ? (
+            <div className="flex flex-col items-center justify-center h-64 bg-red-50 rounded-3xl border border-red-100 border-dashed p-8">
+               <AlertTriangle className="w-16 h-16 text-red-400 mb-4" />
+               <h3 className="text-xl font-bold text-red-800 mb-2">Gagal Memuat Data</h3>
+               <p className="text-red-600 mb-6 text-center max-w-md">{error}</p>
+               <button 
+                  onClick={() => fetchProducts()}
+                  className="px-6 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors"
+                >
+                  Coba Lagi
+               </button>
+            </div>
+          ) : isLoading && products.length === 0 ? (
             <div className="flex items-center justify-center h-64">
               <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-[#13daec] border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-[#618689] font-medium">
-                  Loading inventory...
+                <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-gray-500 font-bold">
+                  Memuat data stok dari backend...
                 </p>
               </div>
             </div>
@@ -354,296 +467,293 @@ export default function InventoryPage() {
               {/* Stats Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 {/* Stat Card 1 */}
-                <div className="bg-white p-6 rounded-2xl border border-[#dbe5e6] shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group">
-                  <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                    <span className="material-symbols-outlined text-6xl text-[#111718]">
-                      inventory_2
-                    </span>
+                <div className="bg-white p-6 rounded-3xl border border-amber-50 shadow-lg shadow-amber-100/50 flex flex-col justify-between h-36 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+                  <div className="absolute right-[-10px] top-[-10px] p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <Package className="h-24 w-24 text-amber-900" />
                   </div>
-                  <p className="text-[#618689] font-medium z-10">Total SKUs</p>
+                  <p className="text-gray-500 font-bold text-sm z-10">Total SKU</p>
                   <div>
-                    <p className="text-4xl font-bold text-[#111718] z-10">
+                    <p className="text-4xl font-black text-amber-900 z-10">
                       {stats.totalSKUs}
                     </p>
-                    <p className="text-sm text-green-600 font-medium flex items-center gap-1 mt-1">
-                      <span className="material-symbols-outlined text-sm">
-                        trending_up
-                      </span>
-                      +2 items added
+                    <p className="text-xs text-green-600 font-bold flex items-center gap-1 mt-1">
+                      <TrendingUp className="h-3 w-3" />
+                      Aktif dijual
                     </p>
                   </div>
                 </div>
 
                 {/* Stat Card 2 */}
-                <div className="bg-white p-6 rounded-2xl border border-orange-200 shadow-sm flex flex-col justify-between h-32 relative overflow-hidden">
-                  <div className="absolute right-0 top-0 p-4 opacity-10">
-                    <span className="material-symbols-outlined text-6xl text-orange-500">
-                      warning
-                    </span>
+                <div className="bg-white p-6 rounded-3xl border border-amber-50 shadow-lg shadow-orange-100/50 flex flex-col justify-between h-36 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+                  <div className="absolute right-[-10px] top-[-10px] p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <AlertTriangle className="h-24 w-24 text-orange-600" />
                   </div>
-                  <p className="text-[#618689] font-medium z-10">
-                    Low Stock Alerts
+                  <p className="text-gray-500 font-bold text-sm z-10">
+                    Stok Menipis
                   </p>
                   <div>
-                    <p className="text-4xl font-bold text-orange-500 z-10">
+                    <p className="text-4xl font-black text-orange-500 z-10">
                       {stats.lowStockAlerts}
                     </p>
-                    <p className="text-sm text-[#618689] font-medium mt-1">
-                      Requires refill soon
+                    <p className="text-xs text-orange-600 font-bold mt-1">
+                      Perlu restock segera
                     </p>
                   </div>
                 </div>
 
                 {/* Stat Card 3 */}
-                <div className="bg-white p-6 rounded-2xl border border-red-200 shadow-sm flex flex-col justify-between h-32 relative overflow-hidden">
-                  <div className="absolute right-0 top-0 p-4 opacity-10">
-                    <span className="material-symbols-outlined text-6xl text-red-500">
-                      cancel
-                    </span>
+                <div className="bg-white p-6 rounded-3xl border border-amber-50 shadow-lg shadow-red-100/50 flex flex-col justify-between h-36 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+                  <div className="absolute right-[-10px] top-[-10px] p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <XCircle className="h-24 w-24 text-red-600" />
                   </div>
-                  <p className="text-[#618689] font-medium z-10">
-                    Critical (Empty)
+                  <p className="text-gray-500 font-bold text-sm z-10">
+                    Stok Habis (Kritis)
                   </p>
                   <div>
-                    <p className="text-4xl font-bold text-red-500 z-10">
+                    <p className="text-4xl font-black text-red-500 z-10">
                       {stats.criticalEmpty}
                     </p>
-                    <p className="text-sm text-[#618689] font-medium mt-1">
-                      Action needed
+                    <p className="text-xs text-red-600 font-bold mt-1">
+                      Tindakan diperlukan
                     </p>
                   </div>
                 </div>
 
                 {/* Stat Card 4 */}
-                <div className="bg-white p-6 rounded-2xl border border-[#dbe5e6] shadow-sm flex flex-col justify-between h-32 relative overflow-hidden">
-                  <div className="absolute right-0 top-0 p-4 opacity-10">
-                    <span className="material-symbols-outlined text-6xl text-blue-500">
-                      thermostat
-                    </span>
+                <div className="bg-white p-6 rounded-3xl border border-amber-50 shadow-lg shadow-amber-100/50 flex flex-col justify-between h-36 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+                  <div className="absolute right-[-10px] top-[-10px] p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <Thermometer className="h-24 w-24 text-blue-600" />
                   </div>
-                  <p className="text-[#618689] font-medium z-10">
-                    Storage Temp
+                  <p className="text-gray-500 font-bold text-sm z-10">
+                    Suhu Penyimpanan
                   </p>
                   <div>
-                    <p className="text-4xl font-bold text-[#111718] z-10">
-                      {stats.storageTemp}°F
+                    <p className="text-4xl font-black text-gray-900 z-10">
+                      {stats.storageTemp}°C
                     </p>
-                    <p className="text-sm text-green-600 font-medium mt-1 flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm">
-                        check_circle
-                      </span>
-                      Optimal Range
+                    <p className="text-xs text-green-600 font-bold mt-1 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Rentang Optimal
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Filters & Search Toolbar */}
-              <div className="flex flex-col lg:flex-row gap-4 mb-6 sticky top-0 bg-[#f6f8f8] z-20 py-2 -mx-2 px-2">
+              <div className="flex flex-col lg:flex-row gap-4 mb-6 sticky top-24 z-20 py-2 -mx-2 px-2">
                 <div className="flex-1 relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <span className="material-symbols-outlined text-[#618689]">
-                      search
-                    </span>
+                    <Search className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
-                    className="block w-full pl-12 pr-4 py-4 rounded-xl border-none bg-white shadow-sm text-[#111718] placeholder-[#618689] focus:ring-2 focus:ring-[#13daec] h-14 text-lg"
-                    placeholder="Search by product name, SKU, or slot ID..."
+                    className="block w-full pl-12 pr-4 py-4 rounded-2xl border-none bg-white shadow-lg shadow-amber-100/20 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-amber-500 h-14 font-medium transition-all"
+                    placeholder="Cari nama produk, SKU, atau slot..."
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0">
+                <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar">
                   <button
                     onClick={() => setFilterStatus("all")}
-                    className={`flex items-center gap-2 h-14 px-6 rounded-xl font-medium shadow-sm whitespace-nowrap transition-transform hover:scale-105 ${
+                    className={`flex items-center gap-2 h-14 px-6 rounded-2xl font-bold shadow-sm whitespace-nowrap transition-all hover:-translate-y-0.5 ${
                       filterStatus === "all"
-                        ? "bg-[#111718] text-white"
-                        : "bg-white text-[#618689] border border-[#dbe5e6]"
+                        ? "bg-gray-900 text-white shadow-gray-200"
+                        : "bg-white text-gray-500 border border-amber-100 hover:border-amber-300"
                     }`}
                   >
-                    <span className="material-symbols-outlined">view_list</span>
-                    All Items
+                    <Package className="h-4 w-4" />
+                    Semua
                   </button>
                   <button
                     onClick={() => setFilterStatus("low-stock")}
-                    className={`flex items-center gap-2 h-14 px-6 rounded-xl font-medium border transition-colors whitespace-nowrap ${
+                    className={`flex items-center gap-2 h-14 px-6 rounded-2xl font-bold border transition-all whitespace-nowrap hover:-translate-y-0.5 ${
                       filterStatus === "low-stock"
-                        ? "bg-orange-50 border-orange-300 text-orange-700"
-                        : "bg-white text-[#618689] border-[#dbe5e6] hover:border-orange-300 hover:bg-orange-50"
+                        ? "bg-orange-50 border-orange-300 text-orange-700 shadow-sm"
+                        : "bg-white text-gray-500 border-amber-100 hover:border-orange-300 hover:bg-orange-50"
                     }`}
                   >
-                    <span className="material-symbols-outlined text-orange-500">
-                      warning
-                    </span>
-                    Low Stock ({lowStockCount})
+                    <AlertTriangle className={`h-4 w-4 ${filterStatus === "low-stock" ? "text-orange-600" : "text-gray-400"}`} />
+                    Menipis ({lowStockCount})
                   </button>
                   <button
                     onClick={() => setFilterStatus("out-of-stock")}
-                    className={`flex items-center gap-2 h-14 px-6 rounded-xl font-medium border transition-colors whitespace-nowrap ${
+                    className={`flex items-center gap-2 h-14 px-6 rounded-2xl font-bold border transition-all whitespace-nowrap hover:-translate-y-0.5 ${
                       filterStatus === "out-of-stock"
-                        ? "bg-red-50 border-red-300 text-red-700"
-                        : "bg-white text-[#618689] border-[#dbe5e6] hover:border-red-300 hover:bg-red-50"
+                        ? "bg-red-50 border-red-300 text-red-700 shadow-sm"
+                        : "bg-white text-gray-500 border-amber-100 hover:border-red-300 hover:bg-red-50"
                     }`}
                   >
-                    <span className="material-symbols-outlined text-red-500">
-                      block
-                    </span>
-                    Out of Stock ({outOfStockCount})
+                    <XCircle className={`h-4 w-4 ${filterStatus === "out-of-stock" ? "text-red-600" : "text-gray-400"}`} />
+                    Habis ({outOfStockCount})
                   </button>
-                  <button className="flex items-center gap-2 h-14 px-6 rounded-xl bg-white text-[#618689] font-medium border border-[#dbe5e6] hover:border-[#13daec] hover:text-[#13daec] transition-colors whitespace-nowrap">
-                    <span className="material-symbols-outlined">
-                      filter_list
-                    </span>
-                    Filters
+                  <button className="flex items-center gap-2 h-14 px-6 rounded-2xl bg-white text-gray-500 font-bold border border-amber-100 hover:border-amber-400 hover:text-amber-600 transition-all whitespace-nowrap hover:-translate-y-0.5">
+                    <Filter className="h-4 w-4" />
+                    Filter
                   </button>
                 </div>
               </div>
 
               {/* Product List */}
               <div className="flex flex-col gap-4">
-                {filteredProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className={`flex flex-col md:flex-row items-center gap-6 p-4 rounded-2xl bg-white shadow-sm border-l-8 hover:shadow-md transition-shadow ${getStatusColor(
-                      product.status
-                    )}`}
-                  >
-                    <div className="flex items-center gap-4 w-full md:w-1/3">
-                      <div className="size-20 rounded-xl bg-[#f6f8f8] shrink-0 flex items-center justify-center p-2 relative">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          alt={`${product.name} packaging`}
-                          className="w-full h-full object-contain"
-                          src={product.image}
-                        />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-[#111718]">
-                          {product.name}
-                        </h3>
-                        <div className="flex gap-2 mt-1">
-                          <span className="bg-[#f6f8f8] px-2 py-1 rounded-md text-xs font-mono text-[#618689]">
-                            SKU: {product.sku}
-                          </span>
-                          <span className="bg-[#f6f8f8] px-2 py-1 rounded-md text-xs font-mono text-[#618689]">
-                            Slot: {product.slot}
-                          </span>
+                {products.length === 0 && !isLoading ? (
+                    <div className="bg-white rounded-3xl p-12 text-center border border-amber-100 shadow-sm">
+                        <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Belum Ada Data Produk</h3>
+                        <p className="text-gray-500 mb-6">Database produk kosong atau tidak ada produk aktif.</p>
+                        <button
+                                onClick={() => router.push('/admin/products')}
+                                className="px-6 py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-colors"
+                        >
+                            Kelola Produk Master
+                        </button>
+                    </div>
+                ) : (
+                    filteredProducts.map((product) => (
+                    <div
+                        key={product.id}
+                        className={`flex flex-col md:flex-row items-center gap-6 p-4 rounded-3xl bg-white shadow-lg shadow-amber-50/50 border hover:shadow-xl transition-all ${getStatusColor(
+                        product.status
+                        )}`}
+                    >
+                        <div className="flex items-center gap-4 w-full md:w-1/3">
+                        <div className="size-20 rounded-2xl bg-gray-50 shrink-0 flex items-center justify-center p-2 relative border border-gray-100">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                            alt={`${product.name} packaging`}
+                            className="w-full h-full object-contain mix-blend-multiply"
+                            src={product.image}
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/images/placeholder-product.jpg";
+                            }}
+                            />
                         </div>
-                      </div>
-                    </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                            {product.name}
+                            </h3>
+                            <div className="flex gap-2 mt-2">
+                            <span className="bg-gray-100 px-2 py-0.5 rounded-lg text-[10px] font-bold text-gray-500 tracking-wider">
+                                SKU: {product.sku}
+                            </span>
+                            <span className="bg-amber-50 px-2 py-0.5 rounded-lg text-[10px] font-bold text-amber-700 tracking-wider border border-amber-100">
+                                SLOT: {product.slot}
+                            </span>
+                            </div>
+                        </div>
+                        </div>
 
-                    <div className="flex-1 w-full px-4">
-                      <div className="flex justify-between items-end mb-2">
-                        {getStatusBadge(product.status)}
-                        <span className="text-lg font-bold text-[#111718]">
-                          {product.current} / {product.capacity}
-                        </span>
-                      </div>
-                      <div className="w-full h-4 bg-[#f6f8f8] rounded-full overflow-hidden">
-                        <div
-                          className={`h-full ${getProgressBarColor(
-                            product.status
-                          )} transition-all`}
-                          style={{
-                            width: `${
-                              (product.current / product.capacity) * 100
-                            }%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
+                        <div className="flex-1 w-full px-4">
+                        <div className="flex justify-between items-end mb-2">
+                            {getStatusBadge(product.status)}
+                            <span className="text-lg font-bold text-gray-900">
+                            {product.current} <span className="text-sm text-gray-400 font-normal">/ {product.capacity}</span>
+                            </span>
+                        </div>
+                        <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                            <div
+                            className={`h-full ${getProgressBarColor(
+                                product.status
+                            )} transition-all duration-500 ease-out`}
+                            style={{
+                                width: `${
+                                (product.current / product.capacity) * 100
+                                }%`,
+                            }}
+                            ></div>
+                        </div>
+                        </div>
 
-                    <div className="w-full md:w-auto flex justify-end gap-3">
-                      <button className="h-12 w-12 rounded-xl flex items-center justify-center border border-[#dbe5e6] text-[#618689] hover:bg-[#f6f8f8]">
-                        <span className="material-symbols-outlined">edit</span>
-                      </button>
-                      {product.status === "in-stock" ? (
-                        <button className="h-12 px-8 bg-white border border-[#dbe5e6] text-[#111718] font-bold rounded-xl hover:bg-[#f6f8f8] transition-all flex items-center gap-2">
-                          <span>Adjust</span>
+                        <div className="w-full md:w-auto flex justify-end gap-3">
+                        <button 
+                          onClick={() => handleEdit(product)}
+                          className="h-10 w-10 rounded-xl flex items-center justify-center border border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors"
+                        >
+                            <Edit className="h-4 w-4" />
                         </button>
-                      ) : (
-                        <button className="h-12 px-8 bg-[#13daec] hover:bg-[#0ea5b3] text-[#111718] font-bold rounded-xl shadow-lg shadow-[#13daec]/20 transition-all flex items-center gap-2">
-                          <span className="material-symbols-outlined">
-                            add_box
-                          </span>
-                          Refill
-                        </button>
-                      )}
+                        {product.status === "in-stock" ? (
+                            <button 
+                              onClick={() => handleStock(product)}
+                              className="h-10 px-6 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2 text-sm"
+                            >
+                            <span>Atur Stok</span>
+                            </button>
+                        ) : (
+                            <button 
+                              onClick={() => handleStock(product)}
+                              className="h-10 px-6 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg shadow-amber-200 transition-all flex items-center gap-2 text-sm hover:-translate-y-0.5"
+                            >
+                            <Plus className="h-4 w-4" />
+                            Isi Stok
+                            </button>
+                        )}
+                        </div>
                     </div>
-                  </div>
-                ))}
+                    ))
+                )}
               </div>
             </>
           )}
+        </>
+      )}
         </div>
 
         {/* Floating Quick Action Button for Mobile */}
         {!isLoading && (
-          <button className="absolute bottom-8 right-8 size-16 bg-[#111718] rounded-full shadow-2xl shadow-black/20 flex items-center justify-center text-white z-30 md:hidden hover:scale-110 transition-transform">
-            <span className="material-symbols-outlined text-3xl">
-              qr_code_scanner
-            </span>
+          <button className="absolute bottom-8 right-8 size-14 bg-gray-900 rounded-full shadow-2xl shadow-black/20 flex items-center justify-center text-white z-30 md:hidden hover:scale-110 transition-transform">
+            <QrCode className="h-6 w-6" />
           </button>
         )}
       </main>
 
       {/* Right side details panel - Activity Log */}
-      {!isLoading && (
-        <aside className="w-80 bg-white border-l border-[#dbe5e6] hidden xl:flex flex-col p-6 overflow-y-auto">
-          <h3 className="text-lg font-bold text-[#111718] mb-6">
-            Activity Log
+      {!isLoading && view === "list" && (
+        <aside className="w-80 bg-white border-l border-amber-100 hidden xl:flex flex-col p-6 overflow-y-auto z-10 shadow-lg shadow-amber-50">
+          <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <History className="h-5 w-5 text-amber-500" />
+            Riwayat Aktivitas
           </h3>
-          <div className="relative pl-6 border-l border-[#dbe5e6] space-y-8">
-            {activityLogs.map((log, index) => (
-              <div key={log.id} className="relative">
-                <div
-                  className={`absolute -left-[29px] top-1 size-3 rounded-full border-4 border-white ${
-                    index === 0 ? "bg-[#13daec]" : "bg-[#dbe5e6]"
-                  }`}
-                ></div>
-                <p className="text-sm font-bold text-[#111718]">{log.title}</p>
-                <p className="text-xs text-[#618689] mt-0.5">{log.user}</p>
-                <p className="text-xs text-[#618689] mt-0.5">{log.time}</p>
-                <div
-                  className={`mt-2 p-3 rounded-lg text-xs ${
-                    log.type === "refill"
-                      ? "bg-[#f6f8f8] text-[#618689]"
-                      : log.type === "alert"
-                      ? "bg-orange-50 text-orange-700 border border-orange-100"
-                      : "bg-[#f6f8f8] text-[#618689]"
-                  }`}
-                >
-                  {log.message.includes("Paracetamol") ? (
-                    <>
-                      Restocked{" "}
-                      <span className="font-bold text-[#111718]">
-                        Paracetamol
-                      </span>{" "}
-                      to 50 units.
-                    </>
-                  ) : log.message.includes("Amoxicillin") ? (
-                    <>
-                      <span className="font-bold">Amoxicillin</span> dropped
-                      below 15% threshold.
-                    </>
-                  ) : (
-                    log.message
-                  )}
+          <div className="relative pl-6 border-l-2 border-dashed border-gray-100 space-y-8">
+            {activityLogs.length === 0 ? (
+                <div className="text-gray-400 text-sm italic">Belum ada aktivitas tercatat.</div>
+            ) : (
+                activityLogs.map((log, index) => (
+                <div key={log.id} className="relative">
+                    <div
+                    className={`absolute -left-[31px] top-1 size-4 rounded-full border-4 border-white shadow-sm ${
+                        index === 0 ? "bg-amber-500" : "bg-gray-300"
+                    }`}
+                    ></div>
+                    <p className="text-sm font-bold text-gray-900">{log.title}</p>
+                    <div className="flex gap-2 text-[10px] text-gray-400 font-medium uppercase tracking-wider mt-1">
+                    <span>{log.user}</span>
+                    <span>•</span>
+                    <span>{log.time}</span>
+                    </div>
+                    <div
+                    className={`mt-2 p-3 rounded-xl text-xs font-medium border ${
+                        log.type === "refill"
+                        ? "bg-green-50 text-green-700 border-green-100"
+                        : log.type === "alert"
+                        ? "bg-orange-50 text-orange-700 border-orange-100"
+                        : "bg-red-50 text-red-700 border-red-100"
+                    }`}
+                    >
+                    {log.message}
+                    </div>
                 </div>
-              </div>
-            ))}
+                ))
+            )}
           </div>
 
-          <div className="mt-5">
-            <div className="bg-[#13daec]/10 rounded-xl p-4 flex items-center gap-3">
-              <span className="material-symbols-outlined text-[#0ea5b3]">
-                support_agent
-              </span>
+          <div className="mt-auto pt-6">
+            <div className="bg-amber-50 rounded-2xl p-4 flex items-center gap-3 border border-amber-100">
+              <div className="p-2 bg-white rounded-lg shadow-sm">
+                <HelpCircle className="h-5 w-5 text-amber-500" />
+              </div>
               <div>
-                <p className="text-sm font-bold text-[#0ea5b3]">Need Help?</p>
-                <p className="text-xs text-[#618689]">Contact Tech Support</p>
+                <p className="text-sm font-bold text-gray-900">Butuh Bantuan?</p>
+                <p className="text-xs text-amber-700 font-medium">Hubungi Teknisi</p>
               </div>
             </div>
           </div>

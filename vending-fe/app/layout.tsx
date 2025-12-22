@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Vending Machine",
-  description: "IoT Vending Machine Interface",
+  title: "Vendify - Smart Snacking",
+  description: "Snack favoritmu, sekali tap.",
 };
 
 export const viewport = {

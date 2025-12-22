@@ -9,9 +9,11 @@ import {
   ArrowLeft,
   Plus,
   Minus,
-  Stethoscope,
-  Pill,
-  ShieldCheck,
+  Tag,
+  Info,
+  ShoppingBag,
+  CreditCard,
+  ShoppingCart,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -30,7 +32,11 @@ const ProductDetailScreen: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Produk tidak ditemukan</p>
-          <Button variant="primary" onClick={() => setCurrentScreen("home")}>
+          <Button
+            variant="primary"
+            onClick={() => setCurrentScreen("home")}
+            className="bg-amber-500 hover:bg-amber-600 text-white border-none"
+          >
             Kembali ke Beranda
           </Button>
         </div>
@@ -49,11 +55,7 @@ const ProductDetailScreen: React.FC = () => {
   // Get full image URL
   const getImageUrl = (imageUrl: string | null) => {
     if (!imageUrl) return "/images/placeholder-product.jpg";
-
-    // If already full URL, return as is
     if (imageUrl.startsWith("http")) return imageUrl;
-
-    // If relative path, add backend URL
     const backendUrl =
       process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
     return `${backendUrl}${imageUrl}`;
@@ -76,194 +78,175 @@ const ProductDetailScreen: React.FC = () => {
   };
 
   const handleContinue = () => {
+    // "Beli Sekarang" logic: Add to cart then go to checkout directly?
+    // Or just go to checkout with single item?
+    // Usually 'Buy Now' implies checkout immediately.
+    // For simplicity, we'll add to cart and go to cart/summary.
+    addToCart(selectedProduct, quantity);
     setCurrentScreen("order-summary");
   };
 
   const handleAddToCart = () => {
     if (selectedProduct) {
       addToCart(selectedProduct, quantity);
-      toast.success(`${selectedProduct.name} ditambahkan ke keranjang`);
-      // Reset quantity and go back to home to continue shopping
+      toast.success(`${selectedProduct.name} masuk keranjang!`);
       setQuantity(1);
       setCurrentScreen("home");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-amber-50/30 p-6">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center mb-6">
           <button
             onClick={handleBack}
-            className="p-2 rounded-full bg-white/90 border border-gray-100 text-teal-400 shadow-sm hover:shadow-lg transition-shadow mr-4"
+            className="p-3 rounded-full bg-white border-2 border-amber-100 text-amber-500 shadow-sm hover:shadow-md hover:border-amber-300 transition-all mr-4"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-6 w-6" />
           </button>
           <div>
-            <div className="flex items-center gap-2 text-teal-500 font-semibold uppercase tracking-wide text-xs">
-              <Stethoscope className="h-4 w-4" /> Detail Produk
+            <div className="flex items-center gap-2 text-amber-600 font-bold uppercase tracking-wide text-xs mb-1">
+              <Info className="h-4 w-4" /> Detail Produk
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Informasi Obat</h1>
+            <h1 className="text-3xl font-black text-amber-900 tracking-tight">
+              Info Snack
+            </h1>
           </div>
         </div>
 
-        <div className="bg-white/95 rounded-3xl border border-gray-100 shadow-xl shadow-gray-50 p-6">
+        <div className="bg-white rounded-[2rem] border border-amber-100 shadow-xl shadow-amber-100/50 overflow-hidden">
           <CardContent className="p-0">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Product Image */}
-              <div className="space-y-4">
-                <div className="relative h-64 w-full rounded-2xl bg-white p-2 shadow-inner">
-                  <Image
-                    src={getImageUrl(selectedProduct.image_url)}
-                    alt={selectedProduct.name}
-                    fill
-                    className="object-cover rounded-2xl ring-1 ring-gray-100"
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                  />
+            <div className="grid md:grid-cols-2 gap-0">
+              {/* Left Side: Image */}
+              <div className="p-8 bg-amber-50/50 flex flex-col justify-center">
+                <div className="relative aspect-square w-full rounded-3xl bg-white p-4 shadow-inner border border-amber-100/50">
+                  <div className="relative w-full h-full rounded-2xl overflow-hidden">
+                    <Image
+                      src={getImageUrl(selectedProduct.image_url)}
+                      alt={selectedProduct.name}
+                      fill
+                      className="object-cover hover:scale-110 transition-transform duration-700"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                    />
+                  </div>
                 </div>
 
-                {/* Stock & Slot Info */}
-                <div className="flex justify-between text-sm">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-600">Stok:</span>
-                    <span
-                      className={`font-semibold ${
-                        (selectedProduct.current_stock ?? 0) > 5
-                          ? "text-teal-400"
-                          : "text-orange-600"
-                      }`}
-                    >
-                      {selectedProduct.current_stock} pcs
-                    </span>
+                {/* Stock Chips */}
+                <div className="mt-6 flex justify-between items-center text-sm font-medium">
+                  <div className="px-4 py-2 bg-white rounded-full border border-amber-100 text-amber-800 shadow-sm">
+                    Slot: {selectedProduct.slot_number || "-"}
                   </div>
-
-                  {selectedProduct.slot_number && (
-                    <div className="flex items-center space-x-2">
-                      <span className="text-gray-600">Slot:</span>
-                      <span className="font-semibold">
-                        {selectedProduct.slot_number}
-                      </span>
-                    </div>
-                  )}
+                  <div
+                    className={`px-4 py-2 rounded-full border shadow-sm ${
+                      (selectedProduct.current_stock ?? 0) > 5
+                        ? "bg-green-100 border-green-200 text-green-700"
+                        : "bg-red-100 border-red-200 text-red-700"
+                    }`}
+                  >
+                    Stok: {selectedProduct.current_stock} pcs
+                  </div>
                 </div>
               </div>
 
-              {/* Product Info */}
-              <div className="space-y-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    {selectedProduct.name}
-                  </h2>
-                  <p className="text-gray-600">{selectedProduct.description}</p>
-                </div>
-                {/* Category */}
-                {selectedProduct.category && (
-                  <div className="inline-block">
-                    <span className="px-3 py-1 bg-teal-50 text-teal-500 text-sm rounded-full font-semibold border border-gray-100">
-                      {selectedProduct.category}
-                    </span>
+              {/* Right Side: Info & Actions */}
+              <div className="p-8 flex flex-col h-full bg-white">
+                <div className="flex-grow space-y-6">
+                  <div>
+                    {selectedProduct.category && (
+                      <span className="inline-block px-3 py-1 mb-3 bg-amber-100 text-amber-700 text-xs font-bold uppercase tracking-wider rounded-lg">
+                        {selectedProduct.category}
+                      </span>
+                    )}
+                    <h2 className="text-4xl font-black text-gray-900 mb-3 leading-tight">
+                      {selectedProduct.name}
+                    </h2>
+                    <p className="text-gray-500 leading-relaxed text-lg">
+                      {selectedProduct.description ||
+                        "Snack lezat untuk menemani harimu."}
+                    </p>
                   </div>
-                )}
-                {/* Price */}
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-600 flex items-center gap-2">
-                    <Pill className="h-4 w-4 text-teal-500" /> Harga per unit
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {formatPrice(unitPrice)}
-                  </p>
-                </div>{" "}
-                {/* Quantity Selector */}
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-gray-700">
-                    Jumlah:
-                  </label>
 
-                  <div className="flex items-center space-x-3">
+                  <div className="h-px bg-gray-100 w-full" />
+
+                  {/* Price Block */}
+                  <div>
+                    <p className="text-sm text-gray-400 font-medium flex items-center gap-2 mb-1">
+                      <Tag className="h-4 w-4" /> Harga Satuan
+                    </p>
+                    <p className="text-4xl font-extrabold text-amber-600">
+                      {formatPrice(unitPrice)}
+                    </p>
+                  </div>
+
+                  {/* Quantity Selector */}
+                  <div className="flex items-center justify-between bg-gray-50 p-2 rounded-2xl border border-gray-100">
                     <Button
-                      variant="secondary"
-                      size="sm"
+                      variant="ghost"
                       onClick={() => handleQuantityChange(-1)}
                       disabled={quantity <= 1}
-                      className="p-2 bg-white/90 text-teal-500 border border-gray-100 hover:bg-teal-50"
+                      className="h-12 w-12 rounded-xl bg-white shadow-sm border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-amber-600"
                     >
-                      <Minus className="h-4 w-4" />
+                      <Minus className="h-6 w-6" />
                     </Button>
 
-                    <div className="w-16 text-center">
-                      <input
-                        type="number"
-                        value={quantity}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value) || 1;
-                          if (val >= 1 && val <= maxQuantity) {
-                            setQuantity(val);
-                          }
-                        }}
-                        min={1}
-                        max={maxQuantity}
-                        className="w-full px-3 py-2 text-center rounded-2xl border border-gray-100 bg-white/90 focus:outline-none focus:ring-1 focus:ring-teal-200"
-                      />
+                    <div className="flex flex-col items-center">
+                      <span className="text-2xl font-bold text-gray-900 w-16 text-center">
+                        {quantity}
+                      </span>
+                      <span className="text-[10px] uppercase font-bold text-gray-400">
+                        Jumlah
+                      </span>
                     </div>
 
                     <Button
-                      variant="secondary"
-                      size="sm"
+                      variant="ghost"
                       onClick={() => handleQuantityChange(1)}
                       disabled={quantity >= maxQuantity}
-                      className="p-2 bg-white/90 text-teal-500 border border-gray-100 hover:bg-teal-50"
+                      className="h-12 w-12 rounded-xl bg-white shadow-sm border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-amber-600"
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-6 w-6" />
                     </Button>
                   </div>
-
-                  <p className="text-xs text-gray-500">
-                    Maksimal {maxQuantity} pcs
-                  </p>
                 </div>
-                {/* Total Price */}
-                <div className="border-t border-gray-100 pt-4">
-                  <div className="flex justify-between items-center rounded-2xl bg-teal-50 p-4">
-                    <span className="text-lg font-semibold text-teal-500 flex items-center gap-2">
-                      <ShieldCheck className="h-5 w-5" /> Total
-                    </span>
-                    <span className="text-2xl font-bold text-gray-900">
+
+                {/* Footer Actions */}
+                <div className="mt-8 pt-6 border-t border-gray-100 space-y-6">
+                  <div className="flex justify-between items-center px-2">
+                    <span className="text-gray-500 font-medium">Subtotal</span>
+                    <span className="text-3xl font-black text-gray-900">
                       {formatPrice(totalPrice)}
                     </span>
                   </div>
-                </div>
-                {/* Action Buttons */}
-                <div className="space-y-3 pt-4">
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    fullWidth
-                    onClick={handleAddToCart}
-                    className="bg-teal-400 text-white shadow-lg shadow-teal-100 hover:bg-teal-500"
-                  >
-                    Tambah ke Keranjang
-                  </Button>
 
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    fullWidth
-                    onClick={handleContinue}
-                    className="bg-teal-500 text-white shadow-lg shadow-teal-100 hover:bg-teal-600"
-                  >
-                    Beli Sekarang
-                  </Button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      // variant="secondary"
+                      size="lg"
+                      onClick={handleAddToCart}
+                      className="h-14 bg-white border-2 border-orange-400 text-orange-600 hover:bg-orange-50 font-bold text-lg rounded-xl shadow-sm hover:shadow-md transition-all"
+                    >
+                      <ShoppingCart className="mr-2 h-5 w-5" />
+                      Keranjang
+                    </Button>
 
-                  <Button
-                    variant="ghost"
-                    size="lg"
-                    fullWidth
+                    <Button
+                      // variant="primary"
+                      size="lg"
+                      onClick={handleContinue}
+                      className="h-14 bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg rounded-xl shadow-lg shadow-orange-200 hover:shadow-xl transition-all border-none"
+                    >
+                      Beli
+                    </Button>
+                  </div>
+                  
+                  <button 
                     onClick={handleBack}
-                    className="border border-teal-100 text-teal-500 hover:bg-teal-50"
+                    className="w-full text-center text-gray-400 text-sm font-medium hover:text-amber-600 transition-colors"
                   >
-                    Pilih Produk Lain
-                  </Button>
+                    Batal dan kembali
+                  </button>
                 </div>
               </div>
             </div>

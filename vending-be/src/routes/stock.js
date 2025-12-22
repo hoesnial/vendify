@@ -23,45 +23,104 @@ router.get("/:machine_id", async (req, res) => {
   try {
     const { machine_id } = req.params;
 
-    const stock = await db.query(
-      `
-      SELECT 
-        s.id as slot_id,
-        s.slot_number,
-        s.current_stock,
-        s.capacity,
-        s.is_active,
-        p.id as product_id,
-        p.name as product_name,
-        p.image_url,
-        ROUND((s.current_stock / s.capacity) * 100, 2) as stock_percentage,
-        CASE 
-          WHEN s.current_stock = 0 THEN 'EMPTY'
-          WHEN s.current_stock <= (s.capacity * 0.2) THEN 'LOW'
-          WHEN s.current_stock <= (s.capacity * 0.5) THEN 'MEDIUM'
-          ELSE 'FULL'
-        END as stock_level
-      FROM slots s
-      LEFT JOIN products p ON s.product_id = p.id
-      WHERE s.machine_id = ?
-      ORDER BY s.slot_number ASC
-    `,
-      [machine_id]
-    );
+    if (process.env.USE_SUPABASE === "true") {
+      const supabase = db.getClient();
+      const { data: slots, error } = await supabase
+        .from("slots")
+        .select(`
+          id,
+          slot_number,
+          current_stock,
+          capacity,
+          is_active,
+          product_id,
+          products (
+            name,
+            image_url
+          )
+        `)
+        .eq("machine_id", machine_id)
+        .order("slot_number", { ascending: true });
 
-    // Calculate summary
-    const summary = {
-      total_slots: stock.length,
-      empty_slots: stock.filter((s) => s.stock_level === "EMPTY").length,
-      low_stock_slots: stock.filter((s) => s.stock_level === "LOW").length,
-      active_slots: stock.filter((s) => s.is_active).length,
-    };
+      if (error) throw error;
 
-    res.json({
-      machine_id,
-      summary,
-      slots: stock,
-    });
+      // Transform and calculate levels
+      const stock = slots.map(s => {
+        const percentage = (s.current_stock / s.capacity) * 100;
+        let level = "FULL";
+        if (s.current_stock === 0) level = "EMPTY";
+        else if (s.current_stock <= s.capacity * 0.2) level = "LOW";
+        else if (s.current_stock <= s.capacity * 0.5) level = "MEDIUM";
+
+        return {
+          slot_id: s.id,
+          slot_number: s.slot_number,
+          current_stock: s.current_stock,
+          capacity: s.capacity,
+          is_active: s.is_active,
+          product_id: s.product_id,
+          product_name: s.products?.name,
+          image_url: s.products?.image_url,
+          stock_percentage: parseFloat(percentage.toFixed(2)),
+          stock_level: level
+        };
+      });
+
+      const summary = {
+        total_slots: stock.length,
+        empty_slots: stock.filter((s) => s.stock_level === "EMPTY").length,
+        low_stock_slots: stock.filter((s) => s.stock_level === "LOW").length,
+        active_slots: stock.filter((s) => s.is_active).length,
+      };
+
+      res.json({
+        machine_id,
+        summary,
+        slots: stock,
+      });
+
+    } else {
+      // MySQL Implementation
+      const stock = await db.query(
+        `
+        SELECT 
+          s.id as slot_id,
+          s.slot_number,
+          s.current_stock,
+          s.capacity,
+          s.is_active,
+          p.id as product_id,
+          p.name as product_name,
+          p.image_url,
+          ROUND((s.current_stock / s.capacity) * 100, 2) as stock_percentage,
+          CASE 
+            WHEN s.current_stock = 0 THEN 'EMPTY'
+            WHEN s.current_stock <= (s.capacity * 0.2) THEN 'LOW'
+            WHEN s.current_stock <= (s.capacity * 0.5) THEN 'MEDIUM'
+            ELSE 'FULL'
+          END as stock_level
+        FROM slots s
+        LEFT JOIN products p ON s.product_id = p.id
+        WHERE s.machine_id = ?
+        ORDER BY s.slot_number ASC
+      `,
+        [machine_id]
+      );
+
+      // Calculate summary
+      const summary = {
+        total_slots: stock.length,
+        empty_slots: stock.filter((s) => s.stock_level === "EMPTY").length,
+        low_stock_slots: stock.filter((s) => s.stock_level === "LOW").length,
+        active_slots: stock.filter((s) => s.is_active).length,
+      };
+
+      res.json({
+        machine_id,
+        summary,
+        slots: stock,
+      });
+    }
   } catch (error) {
     console.error("Get stock error:", error);
     res.status(500).json({
@@ -70,6 +129,7 @@ router.get("/:machine_id", async (req, res) => {
   }
 });
 
+// Update stock (restock/adjust)
 // Update stock (restock/adjust)
 router.post("/update", validateStockUpdate, async (req, res) => {
   try {
@@ -89,80 +149,152 @@ router.post("/update", validateStockUpdate, async (req, res) => {
       performed_by = "system",
     } = req.body;
 
-    // Get current slot info
-    const slot = await db.query(
-      `
-      SELECT s.*, m.id as machine_id
-      FROM slots s
-      JOIN machines m ON s.machine_id = m.id
-      WHERE s.id = ?
-    `,
-      [slot_id]
-    );
+    if (process.env.USE_SUPABASE === "true") {
+      const supabase = db.getClient();
+      
+      // Get current slot info
+      const { data: slotInfo, error: slotError } = await supabase
+        .from("slots")
+        .select(`
+          *,
+          machines (id)
+        `)
+        .eq("id", slot_id)
+        .single();
+      
+      if (slotError || !slotInfo) {
+          return res.status(404).json({ error: "Slot not found" });
+      }
 
-    if (slot.length === 0) {
-      return res.status(404).json({
-        error: "Slot not found",
-      });
-    }
+      const quantity_before = slotInfo.current_stock;
+      let quantity_after = quantity;
+      let quantity_change = 0;
 
-    const slotInfo = slot[0];
-    const quantity_before = slotInfo.current_stock;
-    let quantity_after = quantity;
-    let quantity_change = 0;
+      // Calculate quantity change based on type
+      if (change_type === "RESTOCK") {
+        quantity_after = Math.min(quantity_before + quantity, slotInfo.capacity);
+        quantity_change = quantity_after - quantity_before;
+      } else if (change_type === "MANUAL_ADJUST") {
+        quantity_after = Math.min(Math.max(quantity, 0), slotInfo.capacity);
+        quantity_change = quantity_after - quantity_before;
+      } else if (change_type === "AUDIT") {
+        quantity_after = Math.min(Math.max(quantity, 0), slotInfo.capacity);
+        quantity_change = quantity_after - quantity_before;
+      }
 
-    // Calculate quantity change based on type
-    if (change_type === "RESTOCK") {
-      quantity_after = Math.min(quantity_before + quantity, slotInfo.capacity);
-      quantity_change = quantity_after - quantity_before;
-    } else if (change_type === "MANUAL_ADJUST") {
-      quantity_after = Math.min(Math.max(quantity, 0), slotInfo.capacity);
-      quantity_change = quantity_after - quantity_before;
-    } else if (change_type === "AUDIT") {
-      quantity_after = Math.min(Math.max(quantity, 0), slotInfo.capacity);
-      quantity_change = quantity_after - quantity_before;
-    }
-
-    await db.transaction(async (connection) => {
       // Update slot stock
-      await connection.execute(
-        `
-        UPDATE slots SET current_stock = ? WHERE id = ?
-      `,
-        [quantity_after, slot_id]
-      );
+      const { error: updateError } = await supabase
+        .from("slots")
+        .update({ current_stock: quantity_after })
+        .eq("id", slot_id);
+
+      if (updateError) throw updateError;
 
       // Log stock change
-      await connection.execute(
-        `
-        INSERT INTO stock_logs (machine_id, slot_id, change_type, quantity_before, quantity_after, quantity_change, reason, performed_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-        [
-          slotInfo.machine_id,
-          slot_id,
-          change_type,
-          quantity_before,
-          quantity_after,
-          quantity_change,
-          reason,
-          performed_by,
-        ]
-      );
-    });
+      const { error: logError } = await supabase
+        .from("stock_logs")
+        .insert({
+            machine_id: slotInfo.machine_id,
+            slot_id: slot_id,
+            change_type: change_type,
+            quantity_before: quantity_before,
+            quantity_after: quantity_after,
+            quantity_change: quantity_change,
+            reason: reason,
+            performed_by: performed_by
+        });
 
-    res.json({
-      slot_id,
-      machine_id: slotInfo.machine_id,
-      slot_number: slotInfo.slot_number,
-      change_type,
-      quantity_before,
-      quantity_after,
-      quantity_change,
-      reason,
-      performed_by,
-      updated_at: new Date().toISOString(),
-    });
+      if (logError) throw logError;
+
+      res.json({
+        slot_id,
+        machine_id: slotInfo.machine_id,
+        slot_number: slotInfo.slot_number,
+        change_type,
+        quantity_before,
+        quantity_after,
+        quantity_change,
+        reason,
+        performed_by,
+        updated_at: new Date().toISOString(),
+      });
+
+    } else {
+        // MySQL Implementation
+        const slot = await db.query(
+        `
+        SELECT s.*, m.id as machine_id
+        FROM slots s
+        JOIN machines m ON s.machine_id = m.id
+        WHERE s.id = ?
+        `,
+        [slot_id]
+        );
+
+        if (slot.length === 0) {
+        return res.status(404).json({
+            error: "Slot not found",
+        });
+        }
+
+        const slotInfo = slot[0];
+        const quantity_before = slotInfo.current_stock;
+        let quantity_after = quantity;
+        let quantity_change = 0;
+
+        // Calculate quantity change based on type
+        if (change_type === "RESTOCK") {
+        quantity_after = Math.min(quantity_before + quantity, slotInfo.capacity);
+        quantity_change = quantity_after - quantity_before;
+        } else if (change_type === "MANUAL_ADJUST") {
+        quantity_after = Math.min(Math.max(quantity, 0), slotInfo.capacity);
+        quantity_change = quantity_after - quantity_before;
+        } else if (change_type === "AUDIT") {
+        quantity_after = Math.min(Math.max(quantity, 0), slotInfo.capacity);
+        quantity_change = quantity_after - quantity_before;
+        }
+
+        await db.transaction(async (connection) => {
+        // Update slot stock
+        await connection.execute(
+            `
+            UPDATE slots SET current_stock = ? WHERE id = ?
+        `,
+            [quantity_after, slot_id]
+        );
+
+        // Log stock change
+        await connection.execute(
+            `
+            INSERT INTO stock_logs (machine_id, slot_id, change_type, quantity_before, quantity_after, quantity_change, reason, performed_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+            [
+            slotInfo.machine_id,
+            slot_id,
+            change_type,
+            quantity_before,
+            quantity_after,
+            quantity_change,
+            reason,
+            performed_by,
+            ]
+        );
+        });
+
+        res.json({
+        slot_id,
+        machine_id: slotInfo.machine_id,
+        slot_number: slotInfo.slot_number,
+        change_type,
+        quantity_before,
+        quantity_after,
+        quantity_change,
+        reason,
+        performed_by,
+        updated_at: new Date().toISOString(),
+        });
+    }
   } catch (error) {
     console.error("Update stock error:", error);
     res.status(500).json({

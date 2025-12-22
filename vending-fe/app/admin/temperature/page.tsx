@@ -3,6 +3,20 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import {
+  Calendar,
+  Clock,
+  Thermometer,
+  TrendingUp,
+  Activity,
+  Download,
+  RefreshCw,
+  Unlock,
+  Settings,
+  AlertTriangle,
+  Info,
+  CheckCircle2,
+} from "lucide-react";
 
 interface Alert {
   id: string;
@@ -22,7 +36,7 @@ export default function TemperatureMonitor() {
   const [sensorHealth] = useState({
     status: "Optimal",
     latency: "12ms",
-    calibration: "3 days ago",
+    calibration: "3 hari lalu",
   });
   const [selectedPeriod, setSelectedPeriod] = useState<
     "day" | "week" | "month"
@@ -34,26 +48,26 @@ export default function TemperatureMonitor() {
     {
       id: "1",
       type: "warning",
-      title: "Door Open > 2 mins",
-      message: "Check physical security",
+      title: "Pintu Terbuka > 2 mnt",
+      message: "Cek keamanan fisik",
       severity: "Warning",
-      time: "10:45 AM",
+      time: "10:45",
     },
     {
       id: "2",
       type: "info",
-      title: "System Auto-Calibrated",
-      message: "Routine maintenance",
+      title: "Kalibrasi Otomatis",
+      message: "Maintenance rutin",
       severity: "Info",
-      time: "Yesterday",
+      time: "Kemarin",
     },
     {
       id: "3",
       type: "error",
-      title: "Temp Spike Detected",
-      message: "Resolved by System",
+      title: "Lonjakan Suhu Terdeteksi",
+      message: "Diatasi oleh Sistem",
       severity: "Resolved",
-      time: "Yesterday",
+      time: "Kemarin",
       resolved: true,
     },
   ];
@@ -68,17 +82,17 @@ export default function TemperatureMonitor() {
     // Set current date and time
     const now = new Date();
     setCurrentDate(
-      now.toLocaleDateString("en-US", {
-        month: "short",
+      now.toLocaleDateString("id-ID", {
         day: "numeric",
+        month: "long",
         year: "numeric",
       })
     );
     setCurrentTime(
-      now.toLocaleTimeString("en-US", {
-        hour: "numeric",
+      now.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
         minute: "2-digit",
-        hour12: true,
+        hour12: false,
       })
     );
 
@@ -86,10 +100,10 @@ export default function TemperatureMonitor() {
     const interval = setInterval(() => {
       const now = new Date();
       setCurrentTime(
-        now.toLocaleTimeString("en-US", {
-          hour: "numeric",
+        now.toLocaleTimeString("id-ID", {
+          hour: "2-digit",
           minute: "2-digit",
-          hour12: true,
+          hour12: false,
         })
       );
     }, 60000);
@@ -102,7 +116,7 @@ export default function TemperatureMonitor() {
     ((currentTemp - targetMin) / (targetMax - targetMin)) * 100;
 
   return (
-    <div className="flex h-screen bg-[#f6f8f8] font-['Inter']">
+    <div className="flex h-screen bg-amber-50/20 font-sans">
       <AdminSidebar />
 
       {/* Main Content Area */}
@@ -110,28 +124,24 @@ export default function TemperatureMonitor() {
         {/* Header */}
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-4xl font-black tracking-tight text-[#111718]">
-              Temperature Monitor
+            <h2 className="text-4xl font-black tracking-tight text-amber-900">
+              Monitor Suhu
             </h2>
-            <p className="mt-2 text-lg text-[#618689]">
-              Real-time internal climate control status • Unit #402
+            <p className="mt-2 text-lg text-gray-500">
+              Status kontrol iklim internal • Unit #402
             </p>
           </div>
           <div className="flex gap-3">
-            <div className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 border border-gray-200 shadow-sm">
-              <span className="material-symbols-outlined text-[#618689]">
-                calendar_today
-              </span>
-              <span className="text-sm font-medium text-[#111718]">
+            <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2 border border-amber-100 shadow-sm">
+              <Calendar className="h-4 w-4 text-amber-500" />
+              <span className="text-sm font-bold text-gray-700">
                 {currentDate}
               </span>
             </div>
-            <div className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 border border-gray-200 shadow-sm">
-              <span className="material-symbols-outlined text-[#618689]">
-                schedule
-              </span>
-              <span className="text-sm font-medium text-[#111718]">
-                {currentTime}
+            <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2 border border-amber-100 shadow-sm">
+              <Clock className="h-4 w-4 text-amber-500" />
+              <span className="text-sm font-bold text-gray-700">
+                {currentTime} WIB
               </span>
             </div>
           </div>
@@ -140,62 +150,58 @@ export default function TemperatureMonitor() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-8">
           {/* Hero Temp Card */}
-          <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl bg-white p-6 shadow-[0_4px_20px_-2px_rgba(19,218,236,0.1),0_2px_10px_-2px_rgba(0,0,0,0.05)] transition-all hover:shadow-lg border border-transparent">
+          <div className="relative flex flex-col justify-between overflow-hidden rounded-3xl bg-white p-6 shadow-lg shadow-amber-100/50 border border-amber-50 transition-all hover:shadow-xl hover:-translate-y-1">
             <div className="flex justify-between items-start z-10">
               <div>
-                <p className="text-sm font-bold uppercase tracking-wider text-[#618689]">
-                  Current Temp
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                  Suhu Saat Ini
                 </p>
                 <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-6xl font-black tracking-tighter text-[#111718]">
+                  <span className="text-6xl font-black tracking-tighter text-amber-900">
                     {currentTemp.toFixed(1)}
                   </span>
-                  <span className="text-2xl font-bold text-[#618689]">°C</span>
+                  <span className="text-2xl font-bold text-amber-500">°C</span>
                 </div>
               </div>
               <div
-                className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-conic from-[#13daec] via-[#13daec] to-slate-200"
+                className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-conic from-amber-400 via-amber-100 to-amber-50"
                 style={{
-                  background: `conic-gradient(#13daec 0% 65%, #e2e8f0 65% 100%)`,
+                  background: `conic-gradient(#fbbf24 0% 65%, #fef3c7 65% 100%)`,
                 }}
               >
-                <div className="absolute h-16 w-16 rounded-full bg-white flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[#13daec] text-3xl">
-                    thermostat
-                  </span>
+                <div className="absolute h-16 w-16 rounded-full bg-white flex items-center justify-center shadow-inner">
+                  <Thermometer className="h-8 w-8 text-amber-500" />
                 </div>
               </div>
             </div>
             <div className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 w-fit">
-              <span className="material-symbols-outlined text-sm text-green-600">
-                trending_up
-              </span>
+              <TrendingUp className="h-4 w-4 text-green-600" />
               <span className="text-sm font-bold text-green-600">
-                +0.1% vs last hour
+                +0.1% vs jam lalu
               </span>
             </div>
             {/* Decor bg */}
-            <div className="absolute -right-6 -bottom-6 h-32 w-32 rounded-full bg-[#13daec]/5 blur-2xl"></div>
+            <div className="absolute -right-6 -bottom-6 h-32 w-32 rounded-full bg-amber-400/10 blur-2xl"></div>
           </div>
 
           {/* Target Range Card */}
-          <div className="flex flex-col justify-between rounded-2xl bg-white p-6 shadow-[0_4px_20px_-2px_rgba(19,218,236,0.1),0_2px_10px_-2px_rgba(0,0,0,0.05)] border border-transparent">
+          <div className="flex flex-col justify-between rounded-3xl bg-white p-6 shadow-lg shadow-amber-100/50 border border-amber-50">
             <div>
-              <p className="text-sm font-bold uppercase tracking-wider text-[#618689]">
-                Target Range
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                Rentang Target
               </p>
-              <div className="mt-3 flex items-center gap-4">
+              <div className="mt-6 flex items-center gap-4">
                 <div className="flex-1">
-                  <div className="flex justify-between text-xs font-medium text-[#618689] mb-1">
+                  <div className="flex justify-between text-xs font-bold text-gray-400 mb-2">
                     <span>{targetMin}°C</span>
                     <span>{targetMax}°C</span>
                   </div>
-                  <div className="relative h-4 w-full rounded-full bg-gray-100">
+                  <div className="relative h-4 w-full rounded-full bg-gray-100 inner-shadow">
                     {/* Range Indicator */}
-                    <div className="absolute left-[20%] right-[20%] h-full rounded-full bg-[#13daec]/20"></div>
+                    <div className="absolute left-[20%] right-[20%] h-full rounded-full bg-green-100 border border-green-200/50"></div>
                     {/* Current Indicator */}
                     <div
-                      className="absolute top-1/2 h-6 w-1.5 -translate-y-1/2 rounded-full bg-[#13daec] shadow-sm transition-all"
+                      className="absolute top-1/2 h-7 w-2 -translate-y-1/2 rounded-full bg-amber-500 shadow-md ring-2 ring-white transition-all"
                       style={{
                         left: `${Math.min(Math.max(tempPosition, 0), 100)}%`,
                       }}
@@ -203,42 +209,37 @@ export default function TemperatureMonitor() {
                   </div>
                 </div>
               </div>
-              <p className="mt-4 text-3xl font-bold text-[#111718]">
+              <p className="mt-6 text-3xl font-bold text-gray-900">
                 {targetMin}°C - {targetMax}°C
               </p>
             </div>
-            <p className="text-sm text-[#618689] mt-2">
-              Optimal range for vaccines & insulin.
+            <p className="text-sm text-gray-500 mt-2 font-medium">
+              Rentang optimal untuk snack & minuman.
             </p>
           </div>
 
           {/* Sensor Health Card */}
-          <div className="flex flex-col justify-between rounded-2xl bg-white p-6 shadow-[0_4px_20px_-2px_rgba(19,218,236,0.1),0_2px_10px_-2px_rgba(0,0,0,0.05)] border border-transparent">
+          <div className="flex flex-col justify-between rounded-3xl bg-white p-6 shadow-lg shadow-amber-100/50 border border-amber-50">
             <div className="flex justify-between items-start">
-              <p className="text-sm font-bold uppercase tracking-wider text-[#618689]">
-                Sensor Health
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                Kesehatan Sensor
               </p>
-              <span
-                className="material-symbols-outlined text-green-500"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                health_and_safety
-              </span>
+              <Activity className="h-6 w-6 text-green-500" />
             </div>
             <div>
               <p className="text-3xl font-bold text-green-600">
                 {sensorHealth.status}
               </p>
-              <div className="mt-4 flex flex-col gap-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#618689]">Latency</span>
-                  <span className="font-medium text-[#111718]">
+              <div className="mt-4 flex flex-col gap-3">
+                <div className="flex justify-between text-sm border-b border-gray-50 pb-2">
+                  <span className="text-gray-500">Latency</span>
+                  <span className="font-bold text-gray-900">
                     {sensorHealth.latency}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#618689]">Calibration</span>
-                  <span className="font-medium text-[#111718]">
+                  <span className="text-gray-500">Kalibrasi</span>
+                  <span className="font-bold text-gray-900">
                     {sensorHealth.calibration}
                   </span>
                 </div>
@@ -248,44 +249,46 @@ export default function TemperatureMonitor() {
         </div>
 
         {/* Chart Section */}
-        <div className="mb-8 flex flex-col rounded-2xl bg-white p-6 lg:p-8 shadow-[0_4px_20px_-2px_rgba(19,218,236,0.1),0_2px_10px_-2px_rgba(0,0,0,0.05)] border border-transparent">
+        <div className="mb-8 flex flex-col rounded-3xl bg-white p-6 lg:p-8 shadow-lg shadow-amber-100/50 border border-amber-50">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
             <div>
-              <h3 className="text-xl font-bold text-[#111718]">
-                24-Hour Temperature History
+              <h3 className="text-xl font-bold text-gray-900">
+                Riwayat Suhu 24-Jam
               </h3>
-              <p className="text-sm text-[#618689]">Average: 4.1°C</p>
+              <p className="text-sm text-gray-500 font-medium">
+                Rata-rata: 4.1°C
+              </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 bg-gray-50 p-1 rounded-xl">
               <button
                 onClick={() => setSelectedPeriod("day")}
-                className={`rounded-lg px-3 py-1.5 text-sm font-bold transition-colors ${
+                className={`rounded-lg px-4 py-1.5 text-sm font-bold transition-all shadow-sm ${
                   selectedPeriod === "day"
-                    ? "bg-gray-100 text-[#618689]"
-                    : "bg-white border border-gray-200 text-[#618689] hover:bg-gray-50"
+                    ? "bg-white text-amber-600"
+                    : "bg-transparent text-gray-500 hover:text-gray-900 shadow-none border-transparent"
                 }`}
               >
-                Day
+                Hari
               </button>
               <button
                 onClick={() => setSelectedPeriod("week")}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-lg px-4 py-1.5 text-sm font-bold transition-all shadow-sm ${
                   selectedPeriod === "week"
-                    ? "bg-gray-100 text-[#618689]"
-                    : "bg-white border border-gray-200 text-[#618689] hover:bg-gray-50"
+                    ? "bg-white text-amber-600"
+                    : "bg-transparent text-gray-500 hover:text-gray-900 shadow-none border-transparent"
                 }`}
               >
-                Week
+                Minggu
               </button>
               <button
                 onClick={() => setSelectedPeriod("month")}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-lg px-4 py-1.5 text-sm font-bold transition-all shadow-sm ${
                   selectedPeriod === "month"
-                    ? "bg-gray-100 text-[#618689]"
-                    : "bg-white border border-gray-200 text-[#618689] hover:bg-gray-50"
+                    ? "bg-white text-amber-600"
+                    : "bg-transparent text-gray-500 hover:text-gray-900 shadow-none border-transparent"
                 }`}
               >
-                Month
+                Bulan
               </button>
             </div>
           </div>
@@ -301,19 +304,19 @@ export default function TemperatureMonitor() {
                 <linearGradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
                   <stop
                     offset="0%"
-                    stopColor="#13daec"
-                    stopOpacity="0.3"
+                    stopColor="#f59e0b"
+                    stopOpacity="0.2"
                   ></stop>
                   <stop
                     offset="100%"
-                    stopColor="#13daec"
+                    stopColor="#f59e0b"
                     stopOpacity="0.0"
                   ></stop>
                 </linearGradient>
               </defs>
               {/* Grid Lines */}
               <line
-                stroke="#e2e8f0"
+                stroke="#f3f4f6"
                 strokeDasharray="4 4"
                 strokeWidth="1"
                 x1="0"
@@ -322,7 +325,7 @@ export default function TemperatureMonitor() {
                 y2="75"
               ></line>
               <line
-                stroke="#e2e8f0"
+                stroke="#f3f4f6"
                 strokeDasharray="4 4"
                 strokeWidth="1"
                 x1="0"
@@ -331,7 +334,7 @@ export default function TemperatureMonitor() {
                 y2="150"
               ></line>
               <line
-                stroke="#e2e8f0"
+                stroke="#f3f4f6"
                 strokeDasharray="4 4"
                 strokeWidth="1"
                 x1="0"
@@ -348,10 +351,10 @@ export default function TemperatureMonitor() {
               <path
                 d="M0,180 C100,170 150,200 250,190 C350,180 400,120 500,130 C600,140 650,160 750,150 C850,140 900,100 1000,110 C1100,120 1150,140 1200,130"
                 fill="none"
-                stroke="#13daec"
+                stroke="#f59e0b"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth="4"
+                strokeWidth="3"
               ></path>
               {/* Points */}
               <circle
@@ -359,7 +362,7 @@ export default function TemperatureMonitor() {
                 cy="130"
                 fill="#fff"
                 r="6"
-                stroke="#13daec"
+                stroke="#f59e0b"
                 strokeWidth="3"
               ></circle>
               <circle
@@ -367,19 +370,19 @@ export default function TemperatureMonitor() {
                 cy="110"
                 fill="#fff"
                 r="6"
-                stroke="#13daec"
+                stroke="#f59e0b"
                 strokeWidth="3"
               ></circle>
             </svg>
             {/* X Axis Labels */}
-            <div className="flex justify-between mt-4 text-xs font-medium text-[#618689]">
+            <div className="flex justify-between mt-4 text-xs font-bold text-gray-400">
               <span>12 PM</span>
               <span>4 PM</span>
               <span>8 PM</span>
               <span>12 AM</span>
               <span>4 AM</span>
               <span>8 AM</span>
-              <span>Now</span>
+              <span>Sekarang</span>
             </div>
           </div>
         </div>
@@ -387,27 +390,25 @@ export default function TemperatureMonitor() {
         {/* Bottom Row: Alerts & Actions */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Recent Alerts */}
-          <div className="flex flex-col rounded-2xl bg-white p-6 shadow-[0_4px_20px_-2px_rgba(19,218,236,0.1),0_2px_10px_-2px_rgba(0,0,0,0.05)] border border-transparent">
+          <div className="flex flex-col rounded-3xl bg-white p-6 shadow-lg shadow-amber-100/50 border border-amber-50">
             <div className="mb-6 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-[#111718]">
-                Recent Alerts
-              </h3>
+              <h3 className="text-xl font-bold text-gray-900">Alert Terbaru</h3>
               <a
-                className="text-sm font-bold text-[#13daec] hover:text-[#0eaebd]"
+                className="text-sm font-bold text-amber-500 hover:text-amber-600"
                 href="#"
               >
-                View All
+                Lihat Semua
               </a>
             </div>
             <div className="flex flex-col gap-3">
               {alerts.map((alert) => (
                 <div
                   key={alert.id}
-                  className={`flex items-center gap-4 rounded-xl border p-4 ${
+                  className={`flex items-center gap-4 rounded-2xl border p-4 transition-colors ${
                     alert.type === "warning"
                       ? "border-orange-100 bg-orange-50/50"
                       : alert.type === "error"
-                      ? "border-gray-100 bg-white opacity-75"
+                      ? "border-red-100 bg-red-50/50"
                       : "border-gray-100 bg-gray-50"
                   }`}
                 >
@@ -417,28 +418,30 @@ export default function TemperatureMonitor() {
                         ? "bg-orange-100 text-orange-600"
                         : alert.type === "error"
                         ? "bg-red-100 text-red-600"
-                        : "bg-gray-200 text-gray-600"
+                        : "bg-blue-100 text-blue-600"
                     }`}
                   >
-                    <span className="material-symbols-outlined">
-                      {alert.type === "warning"
-                        ? "warning"
-                        : alert.type === "error"
-                        ? "error"
-                        : "info"}
-                    </span>
+                    {alert.type === "warning" ? (
+                      <AlertTriangle className="h-5 w-5" />
+                    ) : alert.type === "error" ? (
+                      <AlertTriangle className="h-5 w-5" />
+                    ) : (
+                      <Info className="h-5 w-5" />
+                    )}
                   </div>
                   <div className="flex-1">
                     <p
-                      className={`font-bold text-[#111718] ${
+                      className={`font-bold text-gray-900 ${
                         alert.resolved
-                          ? "line-through decoration-[#618689] decoration-2"
+                          ? "line-through decoration-gray-400 decoration-2 text-gray-400"
                           : ""
                       }`}
                     >
                       {alert.title}
                     </p>
-                    <p className="text-sm text-[#618689]">{alert.message}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {alert.message}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p
@@ -447,12 +450,14 @@ export default function TemperatureMonitor() {
                           ? "text-orange-600"
                           : alert.severity === "Resolved"
                           ? "text-green-600"
-                          : "text-gray-600"
+                          : "text-blue-600"
                       }`}
                     >
                       {alert.severity}
                     </p>
-                    <p className="text-xs text-[#618689]">{alert.time}</p>
+                    <p className="text-[10px] text-gray-400 font-medium uppercase mt-0.5">
+                      {alert.time}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -460,41 +465,31 @@ export default function TemperatureMonitor() {
           </div>
 
           {/* Quick Actions */}
-          <div className="flex flex-1 flex-col justify-center rounded-2xl bg-white p-6 shadow-[0_4px_20px_-2px_rgba(19,218,236,0.1),0_2px_10px_-2px_rgba(0,0,0,0.05)] border border-transparent">
-            <h3 className="mb-5 text-xl font-bold text-[#111718]">
-              Quick Actions
-            </h3>
+          <div className="flex flex-1 flex-col justify-center rounded-3xl bg-white p-6 shadow-lg shadow-amber-100/50 border border-amber-50">
+            <h3 className="mb-6 text-xl font-bold text-gray-900">Aksi Cepat</h3>
             <div className="grid grid-cols-2 gap-4">
-              <button className="flex flex-col items-center justify-center gap-3 rounded-xl bg-[#f6f8f8] p-6 text-center transition-colors hover:bg-[#13daec]/5 hover:ring-2 hover:ring-[#13daec]/20">
-                <span className="material-symbols-outlined text-3xl text-[#13daec]">
-                  tune
-                </span>
-                <span className="text-sm font-bold text-[#111718]">
-                  Calibrate Sensor
+              <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-gray-50 p-6 text-center transition-all hover:bg-amber-50 hover:ring-2 hover:ring-amber-200 group">
+                <Settings className="h-8 w-8 text-gray-400 group-hover:text-amber-500 transition-colors" />
+                <span className="text-sm font-bold text-gray-700 group-hover:text-amber-900">
+                  Kalibrasi Sensor
                 </span>
               </button>
-              <button className="flex flex-col items-center justify-center gap-3 rounded-xl bg-[#f6f8f8] p-6 text-center transition-colors hover:bg-[#13daec]/5 hover:ring-2 hover:ring-[#13daec]/20">
-                <span className="material-symbols-outlined text-3xl text-[#13daec]">
-                  download
-                </span>
-                <span className="text-sm font-bold text-[#111718]">
-                  Export Logs
+              <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-gray-50 p-6 text-center transition-all hover:bg-amber-50 hover:ring-2 hover:ring-amber-200 group">
+                <Download className="h-8 w-8 text-gray-400 group-hover:text-amber-500 transition-colors" />
+                <span className="text-sm font-bold text-gray-700 group-hover:text-amber-900">
+                  Export Log
                 </span>
               </button>
-              <button className="flex flex-col items-center justify-center gap-3 rounded-xl bg-[#f6f8f8] p-6 text-center transition-colors hover:bg-[#13daec]/5 hover:ring-2 hover:ring-[#13daec]/20">
-                <span className="material-symbols-outlined text-3xl text-[#13daec]">
-                  refresh
-                </span>
-                <span className="text-sm font-bold text-[#111718]">
+              <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-gray-50 p-6 text-center transition-all hover:bg-amber-50 hover:ring-2 hover:ring-amber-200 group">
+                <RefreshCw className="h-8 w-8 text-gray-400 group-hover:text-amber-500 transition-colors" />
+                <span className="text-sm font-bold text-gray-700 group-hover:text-amber-900">
                   Refresh Data
                 </span>
               </button>
-              <button className="flex flex-col items-center justify-center gap-3 rounded-xl bg-[#f6f8f8] p-6 text-center transition-colors hover:bg-[#13daec]/5 hover:ring-2 hover:ring-[#13daec]/20">
-                <span className="material-symbols-outlined text-3xl text-[#13daec]">
-                  lock_open
-                </span>
-                <span className="text-sm font-bold text-[#111718]">
-                  Remote Unlock
+              <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-gray-50 p-6 text-center transition-all hover:bg-amber-50 hover:ring-2 hover:ring-amber-200 group">
+                <Unlock className="h-8 w-8 text-gray-400 group-hover:text-amber-500 transition-colors" />
+                <span className="text-sm font-bold text-gray-700 group-hover:text-amber-900">
+                  Buka Kunci Remote
                 </span>
               </button>
             </div>

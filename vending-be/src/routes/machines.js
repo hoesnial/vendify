@@ -8,37 +8,77 @@ router.get("/:machine_id", async (req, res) => {
   try {
     const { machine_id } = req.params;
 
-    const machine = await db.query(
-      `
-      SELECT * FROM machines WHERE id = ?
-    `,
-      [machine_id]
-    );
+    if (process.env.USE_SUPABASE === "true") {
+      const supabase = db.getClient();
+      
+      const { data: machine, error: machineError } = await supabase
+        .from("machines")
+        .select("*")
+        .eq("id", machine_id)
+        .single();
 
-    if (machine.length === 0) {
-      return res.status(404).json({
-        error: "Machine not found",
+      if (machineError || !machine) {
+        return res.status(404).json({
+          error: "Machine not found",
+        });
+      }
+
+      const { data: slots, error: slotsError } = await supabase
+        .from("slots")
+        .select(`
+          *,
+          products (
+            name,
+            image_url
+          )
+        `)
+        .eq("machine_id", machine_id)
+        .order("slot_number", { ascending: true });
+
+      if (slotsError) throw slotsError;
+
+      // Transform slots to match MySQL structure
+      const transformedSlots = slots.map(s => ({
+        ...s,
+        product_name: s.products?.name,
+        image_url: s.products?.image_url
+      }));
+
+      res.json({
+        ...machine,
+        slots: transformedSlots,
+      });
+    } else {
+      // MySQL Implementation
+      const machine = await db.query(
+        "SELECT * FROM machines WHERE id = ?",
+        [machine_id]
+      );
+
+      if (machine.length === 0) {
+        return res.status(404).json({
+          error: "Machine not found",
+        });
+      }
+
+      const machineInfo = machine[0];
+
+      const slots = await db.query(
+        `
+        SELECT s.*, p.name as product_name, p.image_url
+        FROM slots s
+        LEFT JOIN products p ON s.product_id = p.id
+        WHERE s.machine_id = ?
+        ORDER BY s.slot_number ASC
+        `,
+        [machine_id]
+      );
+
+      res.json({
+        ...machineInfo,
+        slots,
       });
     }
-
-    const machineInfo = machine[0];
-
-    // Get slots info
-    const slots = await db.query(
-      `
-      SELECT s.*, p.name as product_name, p.image_url
-      FROM slots s
-      LEFT JOIN products p ON s.product_id = p.id
-      WHERE s.machine_id = ?
-      ORDER BY s.slot_number ASC
-    `,
-      [machine_id]
-    );
-
-    res.json({
-      ...machineInfo,
-      slots,
-    });
   } catch (error) {
     console.error("Get machine error:", error);
     res.status(500).json({
@@ -59,14 +99,24 @@ router.post("/:machine_id/status", async (req, res) => {
       });
     }
 
-    await db.query(
-      `
-      UPDATE machines 
-      SET status = ?, last_seen = NOW() 
-      WHERE id = ?
-    `,
-      [status, machine_id]
-    );
+    if (process.env.USE_SUPABASE === "true") {
+      const supabase = db.getClient();
+      const { error } = await supabase
+        .from("machines")
+        .update({ status, last_seen: new Date().toISOString() })
+        .eq("id", machine_id);
+
+      if (error) throw error;
+    } else {
+      await db.query(
+        `
+        UPDATE machines 
+        SET status = ?, last_seen = NOW() 
+        WHERE id = ?
+      `,
+        [status, machine_id]
+      );
+    }
 
     res.json({
       machine_id,
@@ -84,9 +134,20 @@ router.post("/:machine_id/status", async (req, res) => {
 // Get machine statistics
 router.get("/:machine_id/stats", async (req, res) => {
   try {
+    if (process.env.USE_SUPABASE === "true") {
+      // Basic stats for Supabase (full analytics pending)
+      res.json({
+        sales_stats: { total_orders: 0, total_revenue: 0 },
+        stock_levels: [],
+        popular_products: []
+      });
+      return;
+    }
+
     const { machine_id } = req.params;
     const { period = "24h" } = req.query;
-
+    
+    // ... Existing MySQL Stats Logic ...
     let timeCondition = "";
     switch (period) {
       case "1h":
@@ -163,6 +224,87 @@ router.get("/:machine_id/stats", async (req, res) => {
     console.error("Get machine stats error:", error);
     res.status(500).json({
       error: "Failed to get machine statistics",
+    });
+  }
+});
+
+// Assign product to slot
+router.post("/:machine_id/slots/assign", async (req, res) => {
+  try {
+    const { machine_id } = req.params;
+    const { slot_id, product_id } = req.body;
+
+    if (!slot_id || !product_id) {
+      return res.status(400).json({
+        error: "slot_id and product_id are required",
+      });
+    }
+
+    if (process.env.USE_SUPABASE === "true") {
+      const supabase = db.getClient();
+      
+      const { data: updatedSlot, error } = await supabase
+        .from("slots")
+        .update({ product_id })
+        .eq("id", slot_id)
+        .eq("machine_id", machine_id)
+        .select(`
+          *,
+          products (
+            name,
+            image_url
+          )
+        `)
+        .single();
+
+      if (error) throw error;
+      if (!updatedSlot) return res.status(404).json({ error: "Slot not found" });
+
+      res.json({
+        message: "Slot updated successfully",
+        slot: {
+            ...updatedSlot,
+            product_name: updatedSlot.products?.name,
+            image_url: updatedSlot.products?.image_url
+        }
+      });
+    } else {
+      // MySQL Implementation
+      const slot = await db.query(
+        "SELECT * FROM slots WHERE id = ? AND machine_id = ?",
+        [slot_id, machine_id]
+      );
+
+      if (slot.length === 0) {
+        return res.status(404).json({
+          error: "Slot not found",
+        });
+      }
+
+      await db.query(
+        "UPDATE slots SET product_id = ? WHERE id = ?",
+        [product_id, slot_id]
+      );
+
+      const updatedSlot = await db.query(
+          `
+          SELECT s.*, p.name as product_name, p.image_url
+          FROM slots s
+          LEFT JOIN products p ON s.product_id = p.id
+          WHERE s.id = ?
+          `,
+          [slot_id]
+      );
+
+      res.json({
+          message: "Slot updated successfully",
+          slot: updatedSlot[0]
+      });
+    }
+  } catch (error) {
+    console.error("Assign slot error:", error);
+    res.status(500).json({
+      error: "Failed to assign slot",
     });
   }
 });

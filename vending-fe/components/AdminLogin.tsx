@@ -60,57 +60,59 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-xl shadow-amber-100/50 border-amber-100">
         <CardContent className="p-8">
           <div className="text-center mb-8">
-            <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock className="h-8 w-8 text-blue-600" />
+            <div className="bg-amber-100 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 transform rotate-3">
+              <Lock className="h-10 w-10 text-amber-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Admin Login</h1>
-            <p className="text-gray-600 mt-2">
-              Masuk untuk mengakses dashboard admin
+            <h1 className="text-3xl font-black text-amber-900 tracking-tight">
+              Vendify Admin
+            </h1>
+            <p className="text-amber-700/60 mt-2 font-medium">
+              Portal Manajemen Vending Machine
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-amber-900 mb-2">
                 Username
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-amber-400" />
                 <input
                   type="text"
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-3 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white placeholder-amber-300/50 text-amber-900"
                   placeholder="Masukkan username"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-amber-900 mb-2">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-amber-400" />
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-12 py-3 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white placeholder-amber-300/50 text-amber-900"
                   placeholder="Masukkan password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-amber-400 hover:text-amber-600"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />
@@ -126,22 +128,32 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
               variant="primary"
               fullWidth
               disabled={isLoading}
+              className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-amber-200 border-none"
             >
-              {isLoading ? "Memproses..." : "Masuk"}
+              {isLoading ? "Memproses..." : "Masuk Dashboard"}
             </Button>
           </form>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800 text-center">
-              <strong>Demo Login:</strong>
-              <br />
-              Username: admin
-              <br />
-              Password: admin123
+          <div className="mt-8 p-4 bg-amber-50/50 rounded-xl border border-amber-100 text-center">
+            <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">
+              Akun Demo
+            </p>
+            <p className="text-sm text-amber-700">
+              <span className="font-mono bg-amber-100 px-2 py-1 rounded text-amber-900">
+                admin
+              </span>
+              <span className="mx-2 text-amber-300">|</span>
+              <span className="font-mono bg-amber-100 px-2 py-1 rounded text-amber-900">
+                admin123
+              </span>
             </p>
           </div>
         </CardContent>
       </Card>
+      
+      <div className="absolute bottom-6 text-center text-amber-900/40 text-sm font-medium">
+        &copy; 2024 Vendify System v2.0
+      </div>
     </div>
   );
 };

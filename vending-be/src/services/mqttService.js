@@ -11,7 +11,7 @@ class MqttService {
 
   async init() {
     try {
-      const brokerUrl = process.env.MQTT_BROKER_URL || "mqtt://localhost:1883";
+      const brokerUrl = process.env.MQTT_BROKER_URL || "ws://broker.emqx.io:8083/mqtt";
       const options = {
         username: process.env.MQTT_USERNAME,
         password: process.env.MQTT_PASSWORD,

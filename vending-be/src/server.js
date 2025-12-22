@@ -8,7 +8,7 @@ require("dotenv").config();
 // Initialize MQTT Service
 // Initialize MQTT Service
 let mqttService = { isConnected: false, close: () => {} };
-const ENABLE_MQTT = false; // Set to true to enable MQTT
+const ENABLE_MQTT = true; // Set to true to enable MQTT
 
 if (ENABLE_MQTT) {
   try {
@@ -144,6 +144,7 @@ app.use("/api/health-assistant", require("./routes/healthAssistant"));
 app.use("/api/prescription-scan", require("./routes/prescriptionScan"));
 app.use("/api/debug", require("./routes/debug")); // Debug endpoints for testing
 app.use("/api/announcements", require("./routes/announcements")); // Announcement system
+app.use("/api/temperature", require("./routes/temperature")); // Temperature monitoring
 
 
 // 404 handler

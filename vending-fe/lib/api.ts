@@ -333,6 +333,14 @@ export const vendingAPI = {
      const response = await api.post("/stock/update", data);
      return response.data;
   },
+
+  // Temperature
+  getTemperatureLogs: async (machineId: string = "VM01", limit: number = 24) => {
+    const response = await api.get(`/temperature/${machineId}`, {
+        params: { limit }
+    });
+    return response.data;
+  },
 };
 
 export default api;

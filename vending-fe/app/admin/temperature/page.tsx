@@ -30,7 +30,7 @@ interface Alert {
 
 export default function TemperatureMonitor() {
   const router = useRouter();
-  const [currentTemp] = useState(4.2);
+  const [currentTemp, setCurrentTemp] = useState(0);
   const [targetMin] = useState(2.0);
   const [targetMax] = useState(8.0);
   const [sensorHealth] = useState({
@@ -79,6 +79,21 @@ export default function TemperatureMonitor() {
       return;
     }
 
+    const fetchTemperature = async () => {
+      try {
+        const { vendingAPI } = await import("@/lib/api");
+        const response = await vendingAPI.getTemperatureLogs("VM01"); // Default machine ID
+        if (response.success && response.data && response.data.length > 0) {
+           // Assuming data is latest first
+           setCurrentTemp(response.data[0].value);
+        }
+      } catch (err) {
+        console.error("Failed to fetch temp", err);
+      }
+    };
+
+    fetchTemperature();
+
     // Set current date and time
     const now = new Date();
     setCurrentDate(
@@ -106,6 +121,8 @@ export default function TemperatureMonitor() {
           hour12: false,
         })
       );
+      // Refresh temp every minute too
+      fetchTemperature();
     }, 60000);
 
     return () => clearInterval(interval);

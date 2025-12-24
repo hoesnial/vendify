@@ -385,9 +385,42 @@ router.post("/", validateOrder, async (req, res) => {
       .substr(0, 8)
       .toUpperCase()}`;
 
-    // Create payment URL (mock for now - integrate with real payment gateway)
-    const payment_token = uuidv4();
-    const payment_url = `midtrans://payment/${order_id}`; // Placeholder - frontend will create actual Snap URL
+    // Initialize Midtrans Snap
+    const midtransClient = require('midtrans-client');
+    let snap = new midtransClient.Snap({
+      isProduction: process.env.PAYMENT_IS_PRODUCTION === 'true',
+      serverKey: process.env.PAYMENT_SERVER_KEY,
+      clientKey: process.env.PAYMENT_CLIENT_KEY
+    });
+
+    let payment_token, payment_url;
+
+    try {
+      const parameter = {
+        transaction_details: {
+          order_id: order_id,
+          gross_amount: total_amount
+        },
+        credit_card: {
+          secure: true
+        },
+        customer_details: {
+          phone: customerPhoneValue
+        }
+        // Optional: Add item_details if you want detailed receipt in Midtrans
+      };
+
+      const transaction = await snap.createTransaction(parameter);
+      payment_token = transaction.token;
+      payment_url = transaction.redirect_url;
+      
+      console.log(`✅ Snap Token Generated: ${payment_token}`);
+    } catch (midtransError) {
+      console.error("❌ Midtrans Error:", midtransError.message);
+      // Fallback to mock for development ONLY if Midtrans fails (optional, but safer to fail)
+      throw new Error(`Midtrans API Failed: ${midtransError.message}`);
+    }
+
     const expires_at = moment().add(15, "minutes").toISOString();
 
     if (process.env.USE_SUPABASE === "true") {

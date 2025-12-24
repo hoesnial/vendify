@@ -278,94 +278,201 @@ router.post("/verify/:order_id", async (req, res) => {
       order = result[0];
     }
 
-    if (order.status !== "PENDING" && order.status !== "PAID") {
-      console.log(`⚠️ Order status is ${order.status}, cannot verify`);
-      return res.status(400).json({
-        error: "Order is not in pending or paid status",
-        current_status: order.status,
-      });
+    // === REAL MIDTRANS CHECK ===
+    // Instead of trusting req.body.status, we check the actual status from Midtrans
+    try {
+        const midtransClient = require('midtrans-client');
+        let snap = new midtransClient.Snap({
+            isProduction: process.env.PAYMENT_IS_PRODUCTION === 'true',
+            serverKey: process.env.PAYMENT_SERVER_KEY,
+            clientKey: process.env.PAYMENT_CLIENT_KEY
+        });
+
+        console.log("🔍 Verifying status with Midtrans API...");
+        
+        // Determine which ID to use for checking status
+        let midtransCheckId = order_id;
+
+        // Try to fetch the external ID we stored during token generation
+        if (USE_SUPABASE) {
+            const { data: payment } = await supabase
+                .from("payments")
+                .select("gateway_transaction_id")
+                .eq("order_id", order_id)
+                .single();
+            if (payment && payment.gateway_transaction_id) {
+                console.log(`ℹ️ Found external ID in DB: ${payment.gateway_transaction_id}`);
+                midtransCheckId = payment.gateway_transaction_id;
+            }
+        } else {
+             const payment = await db.query("SELECT gateway_transaction_id FROM payments WHERE order_id = ?", [order_id]);
+             if (payment.length > 0 && payment[0].gateway_transaction_id) {
+                 console.log(`ℹ️ Found external ID in DB: ${payment[0].gateway_transaction_id}`);
+                 midtransCheckId = payment[0].gateway_transaction_id;
+             }
+        }
+
+        console.log(`🔍 Checking status for ID: ${midtransCheckId}`);
+        const midtransResponse = await snap.transaction.status(midtransCheckId);
+        console.log("📊 Midtrans API Response:", JSON.stringify(midtransResponse));
+
+        const transactionStatus = midtransResponse.transaction_status;
+        const fraudStatus = midtransResponse.fraud_status;
+
+        let realPaymentStatus = "PENDING";
+        let realOrderStatus = "PENDING";
+
+        if (transactionStatus == 'capture') {
+            if (fraudStatus == 'challenge') {
+                realPaymentStatus = "CHALLENGE";
+                realOrderStatus = "PENDING"; // Do not dispense yet
+            } else if (fraudStatus == 'accept') {
+                realPaymentStatus = "SUCCESS";
+                realOrderStatus = "PAID";
+            }
+        } else if (transactionStatus == 'settlement') {
+            realPaymentStatus = "SUCCESS";
+            realOrderStatus = "PAID";
+        } else if (
+            transactionStatus == 'cancel' ||
+            transactionStatus == 'deny' ||
+            transactionStatus == 'expire'
+        ) {
+            realPaymentStatus = "FAILED";
+            realOrderStatus = "FAILED";
+        } else if (transactionStatus == 'pending') {
+            realPaymentStatus = "PENDING";
+            realOrderStatus = "PENDING";
+        }
+
+        console.log(`✅ Determined Real Status: ${realOrderStatus} (Midtrans: ${transactionStatus})`);
+
+        if (realOrderStatus !== "PAID") {
+             console.log(`⚠️ Payment not settled yet (Status: ${transactionStatus}). Skipping dispense.`);
+             // Update status anyway to keep DB in sync
+             // ... (update DB logic below)
+        }
+        
+        // Allow proceeding if status is PAID, even if local DB says FAILED
+        if (realOrderStatus === "PAID") {
+             if (order.status === "PAID") {
+                 console.log("ℹ️ Order already PAID locally, re-verifying to ensure dispense...");
+                 // Fallthrough to trigger dispense again just in case it failed before
+             }
+        } else {
+             // For non-paid statuses, we update and return early
+             // (unless it's pending, where we might just wait)
+             if (realOrderStatus === "FAILED") {
+                 // Update DB to failed
+             }
+             // Return simplified response
+             // But wait, we need to update DB first...
+        }
+
+        // Override the "safe check" - we strictly follow Midtrans now
+        // Update DB with REAL status
+        if (USE_SUPABASE) {
+            const now = new Date().toISOString();
+            
+            // Update payment
+            await supabase.from("payments").update({
+                status: realPaymentStatus,
+                transaction_status: transactionStatus, // Save raw status if column exists (optional)
+                processed_at: now,
+                gateway_transaction_id: midtransCheckId // Ensure ID is kept/updated
+            }).eq("order_id", order_id);
+
+            // Update order
+            const orderUpdate = { status: realOrderStatus };
+            if (realOrderStatus === "PAID") orderUpdate.paid_at = now;
+            
+            await supabase.from("orders").update(orderUpdate).eq("id", order_id);
+            console.log("✅ Database updated with real status");
+        } else {
+             // MySQL Update
+             await db.transaction(async (connection) => {
+                 await connection.execute(
+                     `UPDATE payments SET status = ?, transaction_status = ?, processed_at = NOW(), gateway_transaction_id = ? WHERE order_id = ?`,
+                     [realPaymentStatus, transactionStatus, midtransCheckId, order_id]
+                 );
+                 const paid_at = realOrderStatus === "PAID" ? "NOW()" : "NULL";
+                 await connection.execute(
+                     `UPDATE orders SET status = ?, paid_at = ${paid_at} WHERE id = ?`,
+                     [realOrderStatus, order_id]
+                 );
+             });
+             console.log("✅ MySQL updated with real status");
+        }
+
+        // Only trigger dispense if REALLY PAID
+        if (realOrderStatus === "PAID") {
+              const dispenseUrl = `http://localhost:${process.env.PORT || 3001}/api/dispense/trigger`; 
+              // Note: We'll handle multi-item logic same as original code
+              // Original code below... let's just use payment_status = "SUCCESS" for compatibility
+              
+              // Set variables for the fallback code block to use
+              // (Actually, better to replace the whole block logic)
+        } else {
+              return res.json({
+                  success: false,
+                  message: `Payment status is ${transactionStatus}`,
+                  status: realOrderStatus
+              });
+        }
+        
+        // Continue to dispense header...
+        const payment_status = realPaymentStatus; // For compatibility with original variable names
+
+    } catch (midtransError) {
+        console.error("❌ Midtrans Verification Failed:", midtransError.message);
+        // Fallback to trust client IF simulation/test mode? No, safer to fail.
+        // But for debugging, user might want to force success.
+        console.log("⚠️ Falling back to manual override logic due to Midtrans error or simulator issue...");
+        // If getting 404 from Midtrans, it means order_id doesn't exist there.
+        // Proceed with original logic ONLY if configured to allow unsafe bypass (not doing that now).
+        return res.status(500).json({ error: "Failed to verify with Midtrans: " + midtransError.message });
     }
 
-    // If already PAID, just return success (idempotent)
-    if (order.status === "PAID") {
-      console.log("ℹ️ Order already PAID, returning success");
-      return res.json({
+    // ORIGINAL DISPENSE TRIGGER LOGIC (Simplified/Inlined)
+    if (true) { // Always true since we returned early above if not paid
+      console.log(`💰 Payment verified for order ${order_id} - triggering dispense`);
+      
+      try {
+         // Check for multi-items
+         let hasMultipleItems = false;
+         let itemCount = 0;
+
+         if (USE_SUPABASE) {
+             const { data: items } = await supabase.from("order_items").select("id").eq("order_id", order_id);
+             hasMultipleItems = items && items.length > 0;
+             itemCount = items?.length || 0;
+         } else {
+             const items = await db.query("SELECT id FROM order_items WHERE order_id = ?", [order_id]);
+             hasMultipleItems = items.length > 0;
+             itemCount = items.length;
+         }
+
+        const dispenseEndpoint = hasMultipleItems ? "/multi" : "/trigger";
+        const dispenseUrl = `http://localhost:${process.env.PORT || 3001}/api/dispense${dispenseEndpoint}`;
+
+        console.log(`📦 Order ${order_id} has ${itemCount} items. Triggering ${dispenseEndpoint}...`);
+
+        // Fire and forget (don't await strictly, or await and catch)
+        // Actually we should await to report status to frontend
+        await axios.post(dispenseUrl, { order_id }, { timeout: 10000 });
+        
+        console.log("✅ Dispense triggered");
+      } catch (dispenseError) {
+          console.error("❌ Dispense Trigger Error:", dispenseError.message);
+          // Don't fail the verification response, pass warning
+      }
+    }
+
+    return res.json({
         success: true,
-        message: "Order already verified and paid",
-        order_id,
-        status: "PAID",
-      });
-    }
-
-    const payment_status = status === "SUCCESS" ? "SUCCESS" : "FAILED";
-    const order_status = status === "SUCCESS" ? "PAID" : "FAILED";
-
-    console.log("📝 Updating payment and order status...");
-    console.log("📝 New payment_status:", payment_status);
-    console.log("📝 New order_status:", order_status);
-
-    if (USE_SUPABASE) {
-      // Supabase: Update payment and order
-      const now = new Date().toISOString();
-
-      console.log("💾 Updating payment...");
-      // Update payment
-      const { error: paymentError } = await supabase
-        .from("payments")
-        .update({
-          status: payment_status,
-          processed_at: now,
-        })
-        .eq("order_id", order_id);
-
-      if (paymentError) {
-        console.error("❌ Payment update error:", paymentError);
-      } else {
-        console.log("✅ Payment updated");
-      }
-
-      console.log("💾 Updating order...");
-      // Update order
-      const orderUpdate = {
-        status: order_status,
-      };
-      if (payment_status === "SUCCESS") {
-        orderUpdate.paid_at = now;
-      }
-
-      const { error: orderError } = await supabase
-        .from("orders")
-        .update(orderUpdate)
-        .eq("id", order_id);
-
-      if (orderError) {
-        console.error("❌ Order update error:", orderError);
-      } else {
-        console.log("✅ Order updated to status:", order_status);
-      }
-    } else {
-      // MySQL: Use transaction
-      await db.transaction(async (connection) => {
-        await connection.execute(
-          `
-        UPDATE payments 
-        SET status = ?, processed_at = NOW()
-        WHERE order_id = ?
-      `,
-          [payment_status, order_id]
-        );
-
-        const paid_at = payment_status === "SUCCESS" ? "NOW()" : "NULL";
-        await connection.execute(
-          `
-        UPDATE orders 
-        SET status = ?, paid_at = ${paid_at}
-        WHERE id = ?
-      `,
-          [order_status, order_id]
-        );
-      });
-    }
+        message: "Payment verified and dispense triggered",
+        status: "PAID"
+    });
 
     // If payment successful, trigger dispense process
     if (payment_status === "SUCCESS") {
@@ -499,10 +606,87 @@ router.patch("/method/:order_id", async (req, res) => {
       payment_method,
     });
 
+    // Generate Midtrans Token if method is midtrans
+    let payment_token = null;
+    let payment_url = null;
+    let midtransOrderId = null;
+
+    if (payment_method === 'midtrans') {
+        console.log("PAYMENT_DEBUG: Attempting to generate Midtrans token...");
+        try {
+            // Get order amount first
+            let total_amount = 0;
+            let customer_phone = null;
+
+            if (USE_SUPABASE) {
+               const { data: order, error } = await supabase.from('orders').select('total_amount, customer_phone').eq('id', order_id).single();
+               if (error) console.error("PAYMENT_DEBUG: Supabase fetch error:", error);
+               if (order) {
+                   total_amount = order.total_amount;
+                   customer_phone = order.customer_phone;
+                   console.log("PAYMENT_DEBUG: Order found, amount:", total_amount);
+               } else {
+                   console.log("PAYMENT_DEBUG: Order not found in Supabase");
+               }
+            } else {
+               // ... MySQL fallback logic ...
+               const result = await db.query("SELECT total_amount, customer_phone FROM orders WHERE id = ?", [order_id]);
+               if (result.length > 0) {
+                   total_amount = result[0].total_amount;
+                   customer_phone = result[0].customer_phone;
+               }
+            }
+
+            if (total_amount > 0) {
+                const midtransClient = require('midtrans-client');
+                console.log("PAYMENT_DEBUG: ServerKey present?", !!process.env.PAYMENT_SERVER_KEY);
+                
+                let snap = new midtransClient.Snap({
+                    isProduction: process.env.PAYMENT_IS_PRODUCTION === 'true',
+                    serverKey: process.env.PAYMENT_SERVER_KEY,
+                    clientKey: process.env.PAYMENT_CLIENT_KEY
+                });
+
+                midtransOrderId = order_id + '-' + Date.now();
+                const parameter = {
+                    transaction_details: {
+                        order_id: midtransOrderId, // Append timestamp to avoid dupes if retrying, verify endpoint must fetch this!
+                        gross_amount: total_amount
+                    },
+                    credit_card: { secure: true },
+                    customer_details: { phone: customer_phone || '08123456789' },
+                    callbacks: {
+                        finish: "http://localhost:3000" // Redirect back to frontend if logic bypasses snap.js
+                    }
+                };
+
+                console.log("PAYMENT_DEBUG: Creating transaction with params:", JSON.stringify(parameter));
+
+                const transaction = await snap.createTransaction(parameter);
+                payment_token = transaction.token;
+                payment_url = transaction.redirect_url;
+                console.log(`✅ PAYMENT_DEBUG: Generated new Snap Token: ${payment_token}`);
+            } else {
+                console.log("PAYMENT_DEBUG: Total amount is 0 or invalid");
+            }
+        } catch (e) {
+            console.error("⚠️ PAYMENT_DEBUG: Failed to generate Token:", e.message);
+            console.error(e);
+        }
+    }
+
     if (USE_SUPABASE) {
+      const updateData = { 
+          payment_type: payment_method,
+      };
+      // Store the suffixed ID so verify logic can find it
+      if (midtransOrderId) {
+          updateData.gateway_transaction_id = midtransOrderId;
+      }
+
       const { error } = await supabase
         .from("payments")
-        .update({ payment_type: payment_method })
+        .update(updateData)
         .eq("order_id", order_id);
 
       if (error) {
@@ -511,13 +695,25 @@ router.patch("/method/:order_id", async (req, res) => {
           error: "Failed to update payment method",
         });
       }
+      
+      // Also update order with new token if exists
+      if (payment_token) {
+          await supabase.from("orders").update({ payment_token, payment_url }).eq("id", order_id);
+      }
 
       console.log("✅ Payment method updated successfully");
     } else {
       await db.query(
-        `UPDATE payments SET payment_type = ? WHERE order_id = ?`,
-        [payment_method, order_id]
+        `UPDATE payments SET payment_type = ?, gateway_transaction_id = COALESCE(?, gateway_transaction_id) WHERE order_id = ?`,
+        [payment_method, midtransOrderId, order_id]
       );
+      
+      if (payment_token) {
+          await db.query(
+              `UPDATE orders SET payment_token = ?, payment_url = ? WHERE id = ?`,
+              [payment_token, payment_url, order_id]
+          );
+      }
     }
 
     res.json({
@@ -525,6 +721,8 @@ router.patch("/method/:order_id", async (req, res) => {
       message: "Payment method updated",
       order_id,
       payment_method,
+      payment_token, // Return the token to frontend
+      payment_url
     });
   } catch (error) {
     console.error("Update payment method error:", error);

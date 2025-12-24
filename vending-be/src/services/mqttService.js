@@ -111,7 +111,7 @@ class MqttService {
           .update({ last_seen: new Date().toISOString() })
           .eq("id", machineId);
 
-        // Process slot levels if provided
+          // Process slot levels if provided
         if (data.slots && Array.isArray(data.slots)) {
           for (const slot of data.slots) {
             if (slot.id && slot.level) {
@@ -142,6 +142,20 @@ class MqttService {
                 .eq("slot_number", slot.id);
             }
           }
+        }
+
+        // Process Temperature/Humidity
+        // Supports keys: temperature, temp, value
+        const tempValue = data.temperature || data.temp || data.value;
+        const humidity = data.humidity || 0;
+
+        if (tempValue !== undefined) {
+          await supabase.from("temperature_logs").insert({
+            machine_id: machineId,
+            value: parseFloat(tempValue),
+            humidity: parseFloat(humidity),
+          });
+          console.log(`🌡️ Temperature logged for ${machineId}: ${tempValue}°C`);
         }
       } else {
         // MySQL implementation

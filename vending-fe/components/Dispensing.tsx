@@ -111,6 +111,9 @@ const Dispensing: React.FC<DispensingProps> = ({ productName, onComplete }) => {
           // Already paid, start dispensing
           setStage("dispensing");
           startDispensingProcess();
+        } else if (order.status === "FAILED") {
+          setStage("failed");
+          // onComplete(false) will be triggered by the user clicking the button
         } else if (order.status === "COMPLETED") {
           // Already completed
           setStage("complete");
@@ -118,9 +121,8 @@ const Dispensing: React.FC<DispensingProps> = ({ productName, onComplete }) => {
         }
       } catch (error) {
         console.error("Error checking order status:", error);
-        // If error, assume we should dispense
-        setStage("dispensing");
-        startDispensingProcess();
+        // If error checking status, default to failed after a retry or just show error
+        setStage("failed");
       }
     };
 
@@ -189,8 +191,8 @@ const Dispensing: React.FC<DispensingProps> = ({ productName, onComplete }) => {
 
           {/* Center Text */}
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <span className="text-4xl font-bold text-teal-500">
-              {Math.round(progress)}%
+            <span className={`text-4xl font-bold ${stage === 'failed' ? 'text-red-500' : 'text-teal-500'}`}>
+              {stage === 'failed' ? '!' : `${Math.round(progress)}%`}
             </span>
             <span className="text-sm text-slate-500">
               {stage === "waiting_payment"
@@ -349,13 +351,33 @@ const Dispensing: React.FC<DispensingProps> = ({ productName, onComplete }) => {
               <p className="font-semibold text-red-600">Dispensing Failed</p>
             </div>
             <p className="text-sm text-red-600">
-              Your money will be refunded automatically.
+               Please contact support.
             </p>
           </div>
         )}
-        <button className="w-full text-slate-500 hover:text-slate-700 transition-colors py-3 rounded-lg bg-slate-100">
-          Having an Issue?
-        </button>
+        
+        {stage === "complete" && (
+           <div className="mb-4">
+             <p className="text-teal-600 font-medium mb-3">Dispensing Complete!</p>
+             <button 
+                onClick={() => onComplete(true)}
+                className="w-full bg-teal-500 text-white hover:bg-teal-600 transition-all py-3 rounded-lg font-bold shadow-md"
+             >
+                Ambil Barang & Selesai
+             </button>
+           </div>
+        )}
+
+        {stage !== "complete" && (
+            <button 
+              onClick={() => {
+                 useVendingStore.getState().resetTransaction();
+              }}
+              className="w-full text-slate-500 hover:text-white hover:bg-slate-500 transition-all py-3 rounded-lg bg-slate-100 font-medium"
+            >
+              {stage === 'failed' ? 'Kembali ke Beranda (Reset)' : 'Batalkan / Kembali'}
+            </button>
+        )}
       </footer>
     </div>
   );

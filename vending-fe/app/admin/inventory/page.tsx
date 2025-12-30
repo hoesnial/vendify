@@ -109,7 +109,7 @@ export default function InventoryPage() {
                       current: s.current_stock || 0,
                       capacity: s.capacity || 50,
                       status,
-                      image: p.image_url || "/images/placeholder-product.jpg",
+                      image: p.image_url || "/images/placeholder-product.svg",
                       slot_id: s.slot_id
                   });
               });
@@ -123,7 +123,7 @@ export default function InventoryPage() {
                   current: 0,
                   capacity: 50,
                   status: "out-of-stock",
-                  image: p.image_url || "/images/placeholder-product.jpg",
+                  image: p.image_url || "/images/placeholder-product.svg",
                   slot_id: 0
                });
           }
@@ -624,7 +624,7 @@ export default function InventoryPage() {
                             className="w-full h-full object-contain mix-blend-multiply"
                             src={product.image}
                             onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/images/placeholder-product.jpg";
+                                (e.target as HTMLImageElement).src = "/images/placeholder-product.svg";
                             }}
                             />
                         </div>

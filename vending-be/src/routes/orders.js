@@ -653,7 +653,7 @@ router.get("/machine/:machine_id", async (req, res) => {
         *,
         products!inner(name),
         slots!inner(slot_number),
-        payments(status)
+        payments(status, payment_type)
       `
       )
       .eq("machine_id", machine_id)
@@ -674,6 +674,7 @@ router.get("/machine/:machine_id", async (req, res) => {
       product_name: order.products?.name,
       slot_number: order.slots?.slot_number,
       payment_status: order.payments?.[0]?.status,
+      payment_type: order.payments?.[0]?.payment_type,
     }));
 
     res.json({

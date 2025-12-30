@@ -26,7 +26,7 @@ const DispensingScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-4 flex items-center justify-center">
+    <div className="min-h-screen bg-amber-50/30 p-4 flex items-center justify-center">
       <Dispensing
         productName={selectedProduct.name}
         onComplete={handleDispenseComplete}

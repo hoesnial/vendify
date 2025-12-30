@@ -30,7 +30,7 @@ app.use(compression());
 // Rate limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+  max: 50000, // force high limit for development
   message: "Too many requests from this IP, please try again later.",
 });
 app.use("/api/", limiter);
@@ -140,11 +140,12 @@ app.use("/api/dispense", require("./routes/dispense"));
 app.use("/api/stock", require("./routes/stock"));
 app.use("/api/telemetry", require("./routes/telemetry"));
 app.use("/api/upload", require("./routes/upload"));
-app.use("/api/health-assistant", require("./routes/healthAssistant"));
+
 app.use("/api/prescription-scan", require("./routes/prescriptionScan"));
 app.use("/api/debug", require("./routes/debug")); // Debug endpoints for testing
 app.use("/api/announcements", require("./routes/announcements")); // Announcement system
 app.use("/api/temperature", require("./routes/temperature")); // Temperature monitoring
+app.use("/api/finance", require("./routes/finance")); // Finance dashboard data
 
 
 // 404 handler

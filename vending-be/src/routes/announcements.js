@@ -92,7 +92,18 @@ router.get("/active", async (req, res) => {
 
     const { data: announcements, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      // Handle missing table error gracefully
+      if (error.code === 'PGRST205' || error.code === '42P01') {
+        console.warn("⚠️  Table 'announcements' not found. Returning empty list.");
+        return res.json({
+          success: true,
+          data: [],
+          count: 0
+        });
+      }
+      throw error;
+    }
 
     res.json({
       success: true,

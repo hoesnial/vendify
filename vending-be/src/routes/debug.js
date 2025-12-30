@@ -300,4 +300,53 @@ router.post("/mqtt/simulate-dispense-result", async (req, res) => {
   }
 });
 
+
+
+// Get latest orders (debug all statuses)
+router.get("/latest-orders", async (req, res) => {
+  try {
+    if (USE_SUPABASE) {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*, payments(status, payment_type)")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      res.json({ success: true, orders: data });
+    } else {
+      const orders = await db.query(
+        "SELECT o.*, p.status as payment_status from orders o LEFT JOIN payments p ON o.id = p.order_id ORDER BY o.created_at DESC LIMIT 10"
+      );
+      res.json({ success: true, orders });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+
+// List tables
+router.get("/tables", async (req, res) => {
+  try {
+    // Attempt to query information_schema via RPC or direct select if permissions allow
+    // Since we can't easily run SQL, we'll try to just check if 'users' exists by select
+    const { data, error } = await supabase
+      .from("users")
+      .select("count", { count: "exact", head: true });
+      
+    if (error) {
+        return res.json({ 
+            exists: false, 
+            error: error 
+        });
+    }
+    
+    res.json({ exists: true, count: data });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

@@ -27,6 +27,7 @@ import {
 
 interface User {
   id: number;
+  type: "admin_user" | "user";
   name: string;
   email: string;
   phone?: string;
@@ -47,12 +48,65 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState({
+    role: "",
+    status: ""
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  /* Add User State */
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addForm, setAddForm] = useState({
+       username: "",
+       email: "",
+       password: "",
+       role: "admin"
+  });
+
+  const handleAddUser = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsSaving(true);
+      try {
+          await vendingAPI.addUser(addForm);
+          toast.success("Admin baru berhasil ditambahkan!");
+          setIsAddModalOpen(false);
+          setAddForm({ username: "", email: "", password: "", role: "admin" });
+          loadUsers();
+      } catch (error: any) {
+          console.error(error);
+          toast.error(error.response?.data?.message || "Gagal menambah admin");
+      } finally {
+          setIsSaving(false);
+      }
+  };
+
+  const handleDeleteUser = async (user: User) => {
+      if (!confirm(`Yakin ingin menghapus user ${user.name}? Tindakan ini tidak bisa dibatalkan.`)) return;
+      
+      try {
+          await vendingAPI.deleteUser(user.id, user.type);
+          toast.success("User berhasil dihapus");
+          loadUsers();
+      } catch (error: any) {
+          console.error(error);
+          toast.error(error.response?.data?.message || "Gagal menghapus user");
+      }
+  };
+
   const getRoleDisplay = (role: string) => {
     const roleMap: Record<
       string,
       { label: string; color: string; icon: any }
     > = {
       admin: {
+        label: "Super Admin",
+        color: "bg-amber-100 text-amber-800 border-amber-200",
+        icon: Shield,
+      },
+      SUPER_ADMIN: {
         label: "Super Admin",
         color: "bg-amber-100 text-amber-800 border-amber-200",
         icon: Shield,
@@ -67,12 +121,27 @@ export default function UsersPage() {
         color: "bg-orange-50 text-orange-700 border-orange-200",
         icon: Wrench,
       },
+      TECHNICIAN: {
+        label: "Teknisi",
+        color: "bg-orange-50 text-orange-700 border-orange-200",
+        icon: Wrench,
+      },
       inventory: {
         label: "Staf Gudang",
         color: "bg-red-50 text-red-700 border-red-200",
         icon: Package,
       },
+      INVENTORY: {
+        label: "Staf Gudang",
+        color: "bg-red-50 text-red-700 border-red-200",
+        icon: Package,
+      },
       auditor: {
+        label: "Auditor",
+        color: "bg-purple-50 text-purple-700 border-purple-200",
+        icon: ClipboardList,
+      },
+      AUDITOR: {
         label: "Auditor",
         color: "bg-purple-50 text-purple-700 border-purple-200",
         icon: ClipboardList,
@@ -148,6 +217,7 @@ export default function UsersPage() {
           const lastLoginFormatted = formatLastLogin(user.lastLogin);
           return {
             id: user.id,
+            type: user.type || (user.role === 'buyer' ? 'user' : 'admin_user'), // Fallback if backend doesn't send type for legacy
             name: user.name || "Unknown User",
             email: user.email,
             phone: user.phone,
@@ -168,6 +238,7 @@ export default function UsersPage() {
         const mockUsers: User[] = [
           {
             id: 1,
+            type: "admin_user",
             name: "Admin Vendify",
             email: "admin@vendify.id",
             role: "Super Admin",
@@ -180,6 +251,7 @@ export default function UsersPage() {
           },
           {
             id: 2,
+            type: "admin_user",
             name: "Budi Teknisi",
             email: "teknisi@vendify.id",
             role: "Teknisi",
@@ -192,6 +264,7 @@ export default function UsersPage() {
           },
           {
             id: 3,
+            type: "admin_user",
             name: "Siti Gudang",
             email: "gudang@vendify.id",
             role: "Staf Gudang",
@@ -204,6 +277,7 @@ export default function UsersPage() {
           },
              {
             id: 4,
+            type: "user",
             name: "Rina Customer",
             email: "rina@gmail.com",
             role: "Customer",
@@ -234,6 +308,44 @@ export default function UsersPage() {
       loadUsers();
     }
   }, [router, loadUsers]);
+
+  const handleEditUser = (user: User) => {
+    // Map display role back to value - Prefer Uppercase to match DB
+    let roleValue = "";
+    if (user.role === "Super Admin") roleValue = "SUPER_ADMIN";
+    else if (user.role === "Teknisi") roleValue = "TECHNICIAN";
+    else if (user.role === "Staf Gudang") roleValue = "INVENTORY";
+    else if (user.role === "Auditor") roleValue = "AUDITOR";
+    else roleValue = "buyer"; // Default
+
+    setEditForm({
+      role: roleValue,
+      status: user.status
+    });
+    setSelectedUser(user);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveUser = async () => {
+    if (!selectedUser) return;
+    setIsSaving(true);
+    try {
+      await vendingAPI.updateUser({
+        id: selectedUser.id,
+        type: selectedUser.type,
+        role: editForm.role,
+        status: editForm.status as "active" | "locked" | "inactive"
+      });
+      toast.success("User updated successfully");
+      setIsEditModalOpen(false);
+      loadUsers(); // Refresh list
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update user");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const getStatusIndicator = (status: string) => {
     switch (status) {
@@ -315,7 +427,9 @@ export default function UsersPage() {
                   <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
                   {isLoading ? "Memuat..." : "Refresh"}
                 </button>
-                <button className="flex items-center gap-2 h-12 px-6 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-lg shadow-amber-200 transition-all hover:-translate-y-0.5 active:translate-y-0">
+                <button 
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="flex items-center gap-2 h-12 px-6 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-lg shadow-amber-200 transition-all hover:-translate-y-0.5 active:translate-y-0">
                   <UserPlus className="w-5 h-5" />
                   Tambah Admin
                 </button>
@@ -460,12 +574,14 @@ export default function UsersPage() {
                         <td className="p-6 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button
+                              onClick={() => handleEditUser(user)}
                               className="size-9 flex items-center justify-center rounded-lg hover:bg-amber-100 text-gray-400 hover:text-amber-600 transition-colors"
                               title="Edit User"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
+                              onClick={() => handleDeleteUser(user)}
                               className="size-9 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
                               title="Delete User"
                             >
@@ -506,6 +622,158 @@ export default function UsersPage() {
           </div>
         </div>
       </main>
+
+      {/* Edit Modal */}
+      {isEditModalOpen && selectedUser && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl skew-y-0 transform transition-all duration-300 scale-100">
+            <h3 className="text-xl font-bold text-amber-900 mb-6">
+              Edit Pengguna: {selectedUser.name}
+            </h3>
+
+            <div className="flex flex-col gap-4">
+              {/* Type Discriminator Info */}
+              <div className="p-3 bg-gray-50 rounded-xl text-xs font-mono text-gray-500 border border-gray-100">
+                Tipe: {selectedUser.type === 'admin_user' ? 'Staff Internal' : 'Customer'}
+              </div>
+
+              {/* Role Selection (Only for Staff) */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-bold text-gray-700">Role</label>
+                {selectedUser.type === 'admin_user' ? (
+                  <select
+                    value={editForm.role}
+                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                    className="h-12 px-4 rounded-xl border border-amber-200 bg-white font-medium focus:border-amber-400 focus:ring-2 focus:ring-amber-200 outline-none"
+                  >
+                    <option value="SUPER_ADMIN">Super Admin</option>
+                    <option value="TECHNICIAN">Teknisi</option>
+                    <option value="INVENTORY">Staf Gudang</option>
+                    <option value="AUDITOR">Auditor</option>
+                  </select>
+                ) : (
+                   <input 
+                      type="text" 
+                      value="Customer (Tetap)" 
+                      disabled 
+                      className="h-12 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-400 font-medium"
+                   />
+                )}
+              </div>
+
+              {/* Status Selection */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-bold text-gray-700">Status</label>
+                <select
+                   value={editForm.status}
+                   onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                   className="h-12 px-4 rounded-xl border border-amber-200 bg-white font-medium focus:border-amber-400 focus:ring-2 focus:ring-amber-200 outline-none"
+                >
+                  <option value="active">Aktif</option>
+                  <option value="locked">Terkunci / Suspend</option>
+                  <option value="inactive">Nonaktif</option>
+                </select>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 mt-4 pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="flex-1 h-12 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleSaveUser}
+                  disabled={isSaving}
+                  className="flex-1 h-12 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 shadow-lg shadow-amber-200 transition-all disabled:opacity-50"
+                >
+                  {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl skew-y-0 transform transition-all duration-300 scale-100">
+            <h3 className="text-xl font-bold text-amber-900 mb-6">
+              Tambah Admin Baru
+            </h3>
+            <form onSubmit={handleAddUser} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-bold text-gray-700">Username</label>
+                <input
+                   required
+                   type="text"
+                   value={addForm.username}
+                   onChange={(e) => setAddForm({ ...addForm, username: e.target.value })}
+                   className="h-12 px-4 rounded-xl border border-amber-200 bg-white font-medium focus:border-amber-400 focus:ring-2 focus:ring-amber-200 outline-none"
+                   placeholder="misal: admin2"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                 <label className="text-sm font-bold text-gray-700">Email</label>
+                 <input
+                    required
+                    type="email"
+                    value={addForm.email}
+                    onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                    className="h-12 px-4 rounded-xl border border-amber-200 bg-white font-medium focus:border-amber-400 focus:ring-2 focus:ring-amber-200 outline-none"
+                    placeholder="email@contoh.com"
+                 />
+              </div>
+              
+              <div className="flex flex-col gap-2">
+                 <label className="text-sm font-bold text-gray-700">Password</label>
+                 <input
+                    required
+                    type="password"
+                    value={addForm.password}
+                    onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                    className="h-12 px-4 rounded-xl border border-amber-200 bg-white font-medium focus:border-amber-400 focus:ring-2 focus:ring-amber-200 outline-none"
+                    placeholder="Minimal 6 karakter"
+                 />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-bold text-gray-700">Role</label>
+                <select
+                   value={addForm.role}
+                   onChange={(e) => setAddForm({ ...addForm, role: e.target.value })}
+                   className="h-12 px-4 rounded-xl border border-amber-200 bg-white font-medium focus:border-amber-400 focus:ring-2 focus:ring-amber-200 outline-none"
+                >
+                  <option value="admin">Super Admin</option>
+                  <option value="technician">Teknisi</option>
+                  <option value="inventory">Staf Gudang</option>
+                  <option value="auditor">Auditor</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 mt-4 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="flex-1 h-12 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex-1 h-12 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 shadow-lg shadow-amber-200 transition-all disabled:opacity-50"
+                >
+                  {isSaving ? "Menyimpan..." : "Tambah Admin"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

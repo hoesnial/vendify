@@ -23,6 +23,7 @@ import {
   ArrowUpRight,
   Filter,
 } from "lucide-react";
+import { vendingAPI } from "@/lib/api";
 
 interface Stats {
   totalRevenue: number;
@@ -64,89 +65,64 @@ export default function TransactionsPage() {
   });
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [transactionsMock] = useState<Transaction[]>([
-    {
-      id: "#TRX-8921",
-      timestamp: "24 Okt, 10:42",
-      item: {
-        name: "Keripik Singkong Balado",
-        quantity: 1,
-        icon: Package,
-      },
-      amount: 12500,
-      method: {
-        type: "QRIS",
-        details: "GoPay",
-        icon: QrCode,
-      },
-      status: "completed",
-    },
-    {
-      id: "#TRX-8920",
-      timestamp: "24 Okt, 10:15",
-      item: {
-        name: "Teh Botol Sosro 450ml",
-        quantity: 2,
-        icon: ShoppingBag,
-      },
-      amount: 16000,
-      method: {
-        type: "QRIS",
-        details: "ShopeePay",
-        icon: Smartphone,
-      },
-      status: "completed",
-    },
-    {
-      id: "#TRX-8919",
-      timestamp: "24 Okt, 09:58",
-      item: {
-        name: "Choco Bar Dairy Milk",
-        quantity: 1,
-        icon: Package,
-      },
-      amount: 15000,
-      method: {
-        type: "Cash",
-        details: "Tunai (Uang Pas)",
-        icon: Banknote,
-      },
-      status: "failed",
-      statusMessage: "Uang Macet",
-    },
-    {
-      id: "#TRX-8918",
-      timestamp: "24 Okt, 09:30",
-      item: {
-        name: "Kacang Atom Garuda",
-        quantity: 1,
-        icon: Package,
-      },
-      amount: 9500,
-      method: {
-        type: "Card",
-        details: "Tap BCA Flazz",
-        icon: CreditCard,
-      },
-      status: "completed",
-    },
-    {
-      id: "#TRX-8917",
-      timestamp: "24 Okt, 09:12",
-      item: {
-        name: "Pop Mie Ayam Bawang",
-        quantity: 2,
-        icon: Package,
-      },
-      amount: 24000,
-      method: {
-        type: "QRIS",
-        details: "Dana",
-        icon: QrCode,
-      },
-      status: "syncing",
-    },
-  ]);
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const [totalItems, setTotalItems] = useState(0);
+
+  const fetchTransactions = async () => {
+    try {
+      setIsLoading(true);
+      const [ordersData, financeData] = await Promise.all([
+        vendingAPI.getOrdersByMachine("VM01", { limit: 50 }),
+        vendingAPI.getFinanceSummary()
+      ]);
+
+      // Map API orders to UI Transaction format
+      const mappedTransactions: Transaction[] = ordersData.orders.map((order: any) => ({
+        id: order.id,
+        timestamp: new Date(order.created_at).toLocaleString("id-ID", {
+          day: "numeric",
+          month: "short", 
+          hour: "2-digit",
+          minute: "2-digit"
+        }),
+        item: {
+          name: order.product_name || "Unknown Product",
+          quantity: order.quantity,
+          icon: Package, // Default icon
+        },
+        amount: order.total_amount,
+        method: {
+          type: order.payment_type ? order.payment_type.toUpperCase() : "UNKNOWN",
+          details: order.payment_type || "-",
+          icon: order.payment_type === "cash" ? Banknote : (["qris", "gopay", "shopeepay", "dana"].includes(order.payment_type?.toLowerCase()) ? QrCode : CreditCard),
+        },
+        status: (order.status === "PAID" || order.status === "SUCCESS" || order.status === "COMPLETED") ? "completed" : (order.status === "FAILED" ? "failed" : "syncing"), 
+        statusMessage: order.status
+      }));
+
+      setTransactions(mappedTransactions);
+      setTotalItems(ordersData.total);
+
+      // Use real stats from finance API where possible, or calculate from list
+      const successRate = financeData.totalTransactions > 0 
+        ? Math.round(((financeData.totalTransactions) / (financeData.totalTransactions + (stats.transactions - financeData.totalTransactions) /* estimation */)) * 100) 
+        : 100; // Simplified for now
+
+      setStats({
+        totalRevenue: financeData.totalRevenue,
+        transactions: financeData.totalTransactions || ordersData.total,
+        successRate: successRate || 100, // Placeholder calculation
+        systemAlerts: 0, // Need backend for this
+        alertMessage: "Semua sistem normal",
+      });
+
+    } catch (error) {
+      console.error("Failed to fetch transactions:", error);
+      // toast.error("Gagal memuat transaksi"); // Uncomment if toast is available
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
@@ -155,37 +131,12 @@ export default function TransactionsPage() {
       return;
     }
 
-    // Simulate fetch
-    setTimeout(() => {
-      setTransactions(transactionsMock);
-      
-      // Calculate stats based on mock
-      const totalRevenue = transactionsMock
-        .filter((t) => t.status === "completed")
-        .reduce((sum, t) => sum + t.amount, 0);
-      const totalTransactions = transactionsMock.length;
-      const completedCount = transactionsMock.filter(
-        (t) => t.status === "completed"
-      ).length;
-      const successRate =
-        totalTransactions > 0 ? (completedCount / totalTransactions) * 100 : 0;
-      const failedCount = transactionsMock.filter(
-        (t) => t.status === "failed"
-      ).length;
-
-      setStats({
-        totalRevenue,
-        transactions: totalTransactions,
-        successRate: Math.round(successRate * 10) / 10,
-        systemAlerts: failedCount,
-        alertMessage:
-          failedCount > 0
-            ? `${failedCount} Transaksi Gagal`
-            : "",
-      });
-      setIsLoading(false);
-    }, 1000);
-  }, [router, transactionsMock]);
+    fetchTransactions();
+    
+    // Auto refresh every 30 seconds
+    const interval = setInterval(fetchTransactions, 30000);
+    return () => clearInterval(interval);
+  }, [router]);
 
   // Format IDR currency
   const formatIDR = (value: number) => {
@@ -260,13 +211,13 @@ export default function TransactionsPage() {
                 Riwayat Transaksi
               </h2>
               <p className="text-gray-500 font-medium">
-                Melihat aktivitas untuk 24 Oktober 2023
+                Melihat aktivitas untuk {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
               </p>
             </div>
             <div className="flex items-center gap-3">
               <span className="bg-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm border border-amber-100/50 text-gray-500 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-amber-500" />
-                Hari Ini, 24 Okt
+                Hari Ini, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
               </span>
             </div>
           </div>

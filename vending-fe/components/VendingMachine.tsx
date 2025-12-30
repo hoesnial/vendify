@@ -10,7 +10,7 @@ import PaymentScreen from "./screens/PaymentScreen";
 import DispensingScreen from "./screens/DispensingScreen";
 import SuccessScreen from "./screens/SuccessScreen";
 import ErrorScreen from "./screens/ErrorScreen";
-import FloatingHealthAssistant from "./FloatingHealthAssistant";
+
 import { Loading } from "./ui/Loading";
 
 const VendingMachine: React.FC = () => {
@@ -60,7 +60,7 @@ const VendingMachine: React.FC = () => {
   return (
     <>
       {screenContent}
-      <FloatingHealthAssistant />
+
     </>
   );
 };

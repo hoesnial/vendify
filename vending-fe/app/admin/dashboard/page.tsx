@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import {
@@ -19,6 +19,7 @@ import {
   History,
   LayoutGrid,
 } from "lucide-react";
+import { vendingAPI } from "@/lib/api";
 
 interface DashboardStats {
   salesToday: number;
@@ -45,65 +46,120 @@ interface Activity {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const [currentUser, setCurrentUser] = useState<{
     id: number;
     username: string;
     email: string;
   } | null>(null);
-  const [stats] = useState<DashboardStats>({
-    salesToday: 1240.5,
-    criticalAlerts: 4,
-    temperature: 3.5,
-    lowStockItems: 12,
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats>({
+    salesToday: 0,
+    criticalAlerts: 0,
+    temperature: 0,
+    lowStockItems: 0,
   });
 
-  const [alerts] = useState<Alert[]>([
-    {
-      id: "1",
-      type: "error",
-      title: "Macet - Slot A4",
-      message: "Motor dispenser gagal berputar.",
-      time: "5 mnt lalu",
-    },
-    {
-      id: "2",
-      type: "warning",
-      title: "Kertas Struk Habis",
-      message: "Status printer < 10%.",
-      time: "15 mnt lalu",
-    },
-    {
-      id: "3",
-      type: "info",
-      title: "Update Tersedia",
-      message: "Versi 2.4.1 siap diunduh.",
-      time: "1 jam lalu",
-    },
-  ]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
 
-  const [activities] = useState<Activity[]>([
-    {
-      id: "1",
-      type: "sale",
-      title: "Penjualan #9921",
-      time: "2 mnt lalu",
-      value: "Rp 12.500",
-    },
-    {
-      id: "2",
-      type: "login",
-      title: "Login Admin",
-      time: "15 mnt lalu",
-      value: "ID: ADM-01",
-    },
-    {
-      id: "3",
-      type: "restock",
-      title: "Restock Zona B",
-      time: "1 jam lalu",
-      value: "+45 items",
-    },
-  ]);
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const [temp, setTemp] = useState(0);
+  const tempRef = useRef(0);
+
+  // Dedicated Temperature Polling (1s)
+  useEffect(() => {
+    const fetchTemp = async () => {
+      try {
+        const response: any = await vendingAPI.getTemperatureLogs("VM01", 1);
+        if (response.data && response.data.length > 0) {
+          // API returns 'value' for temperature
+          const newTemp = response.data[0].value;
+          setTemp(newTemp);
+          tempRef.current = newTemp;
+        }
+      } catch (e) {
+        console.error("Temp fetch error", e);
+      }
+    };
+
+    fetchTemp(); // Initial fetch
+    const interval = setInterval(fetchTemp, 1000); // 1s interval
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      const [financeData, productsData, ordersData] = await Promise.all([
+        vendingAPI.getFinanceSummary(),
+        vendingAPI.getAvailableProducts(),
+        vendingAPI.getOrdersByMachine("VM01", { limit: 10 })
+      ]);
+
+      // 1. Stats
+      const currentTemp = tempRef.current; // Use Ref
+      const lowStockCount = productsData.products.filter(p => (p.current_stock || 0) < 5).length;
+      
+      // Alerts Generation
+      const generatedAlerts: Alert[] = [];
+      if (currentTemp > 25) { // Use real-time temp state
+        generatedAlerts.push({
+          id: "temp-alert",
+          type: "warning",
+          title: "Suhu Tinggi",
+          message: `Suhu mesin ${currentTemp}°C melebihi batas normal.`,
+          time: "Sekarang"
+        });
+      }
+      if (lowStockCount > 0) {
+        generatedAlerts.push({
+          id: "stock-alert",
+          type: "warning",
+          title: "Stok Menipis",
+          message: `${lowStockCount} produk memiliki stok < 5.`,
+          time: "Sekarang"
+        });
+      }
+
+      // Check for recent failed orders
+      const failedOrders = ordersData.orders.slice(0, 5).filter((o: any) => o.status === "FAILED");
+      failedOrders.forEach((o: any) => {
+         generatedAlerts.push({
+           id: `fail-${o.id}`,
+           type: "error",
+           title: "Transaksi Gagal",
+           message: `Order #${o.id.substring(0,8)} gagal dispenser.`,
+           time: new Date(o.created_at).toLocaleTimeString("id-ID", {hour: '2-digit', minute:'2-digit'})
+         });
+      });
+
+      setAlerts(generatedAlerts);
+
+      setStats({
+        salesToday: financeData.salesToday || 0,
+        criticalAlerts: generatedAlerts.length,
+        temperature: currentTemp, // Use state
+        lowStockItems: lowStockCount,
+      });
+
+      // 2. Activities
+      const mappedActivities: Activity[] = ordersData.orders.slice(0, 5).map((order: any) => ({
+        id: order.id,
+        type: "sale",
+        title: `Penjualan #${order.id.substring(0, 6)}`,
+        time: new Date(order.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+        value: `Rp ${(order.total_amount || 0).toLocaleString("id-ID")}`
+      }));
+      setActivities(mappedActivities);
+
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
@@ -117,7 +173,27 @@ export default function AdminDashboard() {
     if (user) {
       setCurrentUser(JSON.parse(user));
     }
-  }, [router]);
+
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 30000); // 30s refresh for other data
+    return () => clearInterval(interval);
+  }, [router]); // Re-run if temp changes to update alerts? No, fetchDashboard is on separate interval.
+                     // But alerts depend on temp.
+                     // Better: Update alerts locally in the temp effect?
+                     // For now, let's keep fetchDashboard independent, but pass 'temp' to it?
+                     // Actually, fetchDashboardData reads 'temp' from closure. It might be stale.
+                     // 'temp' is in state. fetchDashboardData is defined in render scope, so it closes over 'temp'.
+                     // But it's called by setInterval which captures the *initial* fetchDashboardData if not careful.
+                     // Since fetchDashboardData is defined inside component body, it's recreated on every render.
+                     // But the useEffect with [] dep uses the *first* version of fetchDashboardData.
+                     
+                     // FIX: Remove fetchDashboardData from dependency of generic effect, but 'temp' is used inside.
+                     // I will remove 'temp' dependency from main Effect and let 'fetchDashboardData' use current value via ref or just ignore temp-based alerts syncing perfectly for now.
+                     // OR better: Just update the stat card to use 'temp' (the state), and 'stats.temperature' becomes redundant/fallback.
+                     
+                     // Plan: Use 'temp' state directly in JSX for temperature card.
+                     
+  
 
   if (!currentUser) {
     return null;
@@ -211,7 +287,7 @@ export default function AdminDashboard() {
                   Suhu Internal
                 </p>
                 <p className="text-gray-900 text-3xl font-black tracking-tight">
-                  {stats.temperature}°C
+                  {temp /* Real-time */}°C
                 </p>
               </div>
               <div className="flex items-center gap-1 text-blue-600 text-xs font-bold bg-blue-50 w-fit px-2 py-1 rounded-lg">

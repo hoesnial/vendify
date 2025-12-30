@@ -67,7 +67,7 @@ const HomeScreen: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-amber-50/30">
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Header - Yellow Theme */}
         <div className="flex items-center justify-between mb-8 rounded-3xl bg-amber-400 p-6 shadow-lg shadow-amber-200 border border-amber-300">

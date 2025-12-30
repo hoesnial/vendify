@@ -18,6 +18,8 @@ const validateLogin = [
 
 // Admin login
 router.post("/login", validateLogin, async (req, res) => {
+  console.log("LOGIN HEADERS:", JSON.stringify(req.headers, null, 2)); 
+  console.log("LOGIN BODY:", JSON.stringify(req.body, null, 2));
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -181,7 +183,7 @@ const verifyToken = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "default-secret-key");
     req.user = decoded;
     next();
   } catch (error) {

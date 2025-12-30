@@ -82,7 +82,7 @@ const ErrorScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+    <div className="min-h-screen bg-amber-50/30 p-6 flex items-center justify-center">
       <div className="max-w-md mx-auto text-center">
         <div className="border-gray-200 shadow-md bg-white rounded-3xl p-8 space-y-6">
           <CardContent className="p-0">

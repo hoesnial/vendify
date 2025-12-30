@@ -34,17 +34,15 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
-    console.error("API Error Details:", {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      config: {
-        method: error.config?.method,
-        url: error.config?.url,
-        baseURL: error.config?.baseURL,
-      },
-    });
+    console.error("API Error RAW:", error);
+    if (error.response) {
+        console.error("API Error Response:", error.response.data);
+        console.error("API Error Status:", error.response.status);
+    } else if (error.request) {
+        console.error("API No Response:", error.request);
+    } else {
+        console.error("API Setup Error:", error.message);
+    }
     return Promise.reject(error);
   }
 );
@@ -323,6 +321,37 @@ export const vendingAPI = {
     return response.data;
   },
 
+  updateUser: async (data: {
+    id: number;
+    type: "admin_user" | "user";
+    role?: string;
+    status?: "active" | "locked" | "inactive";
+  }) => {
+    // Correct endpoint is /users/manage
+    // Our api base url is /api, so this becomes /api/users/manage
+    const response = await api.post("/users/manage", data, {
+       headers: {
+         Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+       },
+    });
+    return response.data;
+  },
+
+  addUser: async (data: any) => {
+    const response = await api.post("/users/add", data, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("adminToken")}` }
+    });
+    return response.data;
+  },
+
+  deleteUser: async (id: number, type: "admin_user" | "user") => {
+    // Correct endpoint pattern from backend: DELETE /:type/:id
+    const response = await api.delete(`/users/${type}/${id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("adminToken")}` }
+    });
+    return response.data;
+  },
+
   // Stock Management
   updateStock: async (data: {
       slot_id: number;
@@ -339,6 +368,12 @@ export const vendingAPI = {
     const response = await api.get(`/temperature/${machineId}`, {
         params: { limit }
     });
+    return response.data;
+  },
+
+  // Finance
+  getFinanceSummary: async () => {
+    const response = await api.get("/finance/summary");
     return response.data;
   },
 };

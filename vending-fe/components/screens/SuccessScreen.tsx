@@ -60,7 +60,7 @@ const SuccessScreen: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <button
-          className="px-6 py-3 bg-teal-500 text-white rounded-lg font-semibold hover:bg-teal-600 transition-colors"
+          className="px-6 py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors"
           onClick={() => setCurrentScreen("home")}
         >
           Kembali ke Beranda
@@ -72,11 +72,11 @@ const SuccessScreen: React.FC = () => {
   const totalPrice = currentOrder.total_amount;
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 flex items-center justify-center">
+    <div className="min-h-screen bg-amber-50/30 p-4 flex items-center justify-center">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl p-6 md:p-7 shadow-lg">
+        <div className="bg-white rounded-2xl p-6 md:p-7 shadow-lg border border-amber-100">
           {/* Success Icon with Animation */}
-          <div className="w-14 h-14 bg-teal-300 rounded-full flex items-center justify-center mx-auto mb-3 animate-[scaleIn_0.5s_ease-out]">
+          <div className="w-14 h-14 bg-orange-400 rounded-full flex items-center justify-center mx-auto mb-3 animate-[scaleIn_0.5s_ease-out]">
             <svg
               className="w-7 h-7 stroke-white animate-[drawCheck_0.6s_ease-out_0.3s_forwards]"
               style={{
@@ -94,20 +94,20 @@ const SuccessScreen: React.FC = () => {
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">
+          <h1 className="text-2xl font-black text-gray-900 text-center mb-1">
             Berhasil!
           </h1>
-          <p className="text-xs text-teal-400 text-center mb-4 font-medium">
+          <p className="text-xs text-orange-500 text-center mb-4 font-medium">
             Produk Anda telah berhasil keluar
           </p>
 
           {/* Product List */}
-          <div className="bg-gray-50 rounded-xl p-3.5 mb-3">
+          <div className="bg-amber-50 rounded-xl p-3.5 mb-3 border border-amber-100">
             <div className="flex justify-between items-center py-1.5">
               <div>
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-gray-800 font-medium">
                   {selectedProduct.name}{" "}
-                  <span className="text-gray-400">(x{quantity})</span>
+                  <span className="text-orange-600 font-bold">(x{quantity})</span>
                 </div>
               </div>
               <div className="text-xs text-gray-900 font-medium">
@@ -115,9 +115,9 @@ const SuccessScreen: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-2.5 mt-1.5 border-t-2 border-gray-200">
+            <div className="flex justify-between items-center pt-2.5 mt-1.5 border-t-2 border-orange-100">
               <div className="text-sm font-semibold text-gray-900">Total</div>
-              <div className="text-base font-bold text-teal-500">
+              <div className="text-base font-bold text-orange-600">
                 {formatPrice(totalPrice)}
               </div>
             </div>
@@ -147,8 +147,8 @@ const SuccessScreen: React.FC = () => {
               </span>
               <span className="text-[9px] text-gray-400">Menit</span>
             </div>
-            <div className="bg-teal-100 rounded-lg py-2.5 px-3.5 min-w-[55px] text-center">
-              <span className="text-xl font-bold text-teal-500 block leading-none mb-0.5">
+            <div className="bg-orange-100 rounded-lg py-2.5 px-3.5 min-w-[55px] text-center">
+              <span className="text-xl font-bold text-orange-600 block leading-none mb-0.5">
                 {countdown.toString().padStart(2, "0")}
               </span>
               <span className="text-[9px] text-gray-400">Detik</span>
@@ -156,12 +156,12 @@ const SuccessScreen: React.FC = () => {
           </div>
 
           {/* Instruction Text */}
-          <p className="text-[11px] text-teal-400 text-center mb-3 font-medium">
+          <p className="text-[11px] text-orange-600 text-center mb-3 font-bold">
             Silakan ambil produk Anda di bawah
           </p>
 
           {/* Tips List */}
-          <div className="bg-gray-50 rounded-xl p-2.5 mb-3.5 text-left">
+          <div className="bg-gray-50 rounded-xl p-2.5 mb-3.5 text-left border border-gray-100">
             <p className="text-[10px] text-gray-600 mb-0.5 leading-snug">
               • Pastikan semua produk telah diambil
             </p>
@@ -175,7 +175,7 @@ const SuccessScreen: React.FC = () => {
 
           {/* Button */}
           <button
-            className="w-full bg-teal-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-teal-600 transition-all hover:-translate-y-0.5 active:translate-y-0 mb-3"
+            className="w-full bg-orange-500 text-white rounded-xl py-3 text-sm font-bold hover:bg-orange-600 transition-all hover:-translate-y-0.5 active:translate-y-0 mb-3 shadow-lg shadow-orange-200"
             onClick={handleBackToHome}
           >
             Beli Lagi

@@ -11,8 +11,8 @@ import {
   ArrowLeft,
   CreditCard,
   QrCode,
-  Stethoscope,
-  Pill,
+  Wallet,
+  ShoppingBag,
   ShieldCheck,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -248,27 +248,27 @@ const PaymentScreen: React.FC = () => {
           <div className="flex items-center mb-6">
             <button
               onClick={handleBackToSummary}
-              className="p-2 rounded-full bg-white border border-gray-50 text-teal-500 shadow-sm hover:shadow-md transition mr-4"
+              className="p-3 rounded-full bg-white border border-gray-100 text-orange-500 shadow-sm hover:shadow-md transition mr-4 hover:bg-orange-50"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div>
-              <div className="flex items-center gap-2 text-teal-500 text-xs font-semibold uppercase tracking-widest">
-                <Stethoscope className="h-4 w-4" /> Pembayaran
+              <div className="flex items-center gap-2 text-orange-600 text-xs font-bold uppercase tracking-widest mb-1">
+                <Wallet className="h-4 w-4" /> Pembayaran
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-black text-amber-900 tracking-tight">
                 Pilih Metode Pembayaran
               </h1>
             </div>
           </div>
 
           {/* Order Summary */}
-          <div className="mb-6 bg-white rounded-3xl shadow-md border border-gray-50 p-6">
-            <div className="bg-teal-50 rounded-2xl p-4">
+          <div className="mb-6 bg-white rounded-[2rem] shadow-xl shadow-amber-100/20 border border-amber-100 p-6">
+            <div className="bg-amber-50 rounded-2xl p-4 border border-amber-50">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                    <Pill className="h-5 w-5 text-teal-400" />
+                    <ShoppingBag className="h-5 w-5 text-orange-500" />
                     {selectedProduct.name}
                   </h3>
                   <p className="text-gray-600">
@@ -276,7 +276,7 @@ const PaymentScreen: React.FC = () => {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-3xl font-black text-orange-600">
                     Rp {currentOrder.total_amount.toLocaleString("id-ID")}
                   </p>
                 </div>
@@ -287,7 +287,7 @@ const PaymentScreen: React.FC = () => {
           {/* Payment Methods */}
           <div className="space-y-4">
             <div
-              className="cursor-pointer hover:border-teal-300 hover:shadow-lg transition-all duration-200 border border-gray-50 bg-white rounded-3xl shadow-md p-6 hover:bg-teal-50"
+              className="cursor-pointer hover:border-orange-400 hover:shadow-xl transition-all duration-200 border border-transparent bg-white rounded-3xl shadow-lg shadow-gray-100 p-6 hover:bg-orange-50 group"
               onClick={async () => {
                 try {
                   // Update payment method in backend
@@ -308,64 +308,29 @@ const PaymentScreen: React.FC = () => {
               }}
             >
               <div className="flex items-center space-x-4">
-                <div className="rounded-xl text-white">
+                <div className="rounded-xl text-white overflow-hidden shadow-sm">
                   {/* <CreditCard className="h-6 w-6" /> */}
                   <Image
                     src="/bank-logo.jpg"
                     alt="Bank Logo"
-                    width={40}
-                    height={40}
-                    className="rouded-xl"
+                    width={56}
+                    height={56}
+                    className="object-cover"
                   />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-lg text-gray-900">
+                  <h3 className="font-bold text-lg text-gray-900 group-hover:text-orange-700 transition-colors">
                     Midtrans Payment
                   </h3>
-                  <p className="text-gray-600">
-                    Visa, Mastercard, Bank Transfer, E-Wallet
+                  <p className="text-gray-500 text-sm">
+                    Visa, Mastercard, Bank Transfer, E-Wallet, QRIS
                   </p>
                 </div>
-                <div className="text-teal-400 font-bold text-xl">→</div>
+                <div className="text-orange-400 font-black text-2xl group-hover:translate-x-1 transition-transform">→</div>
               </div>
             </div>
 
-            <div
-              className="cursor-pointer hover:border-teal-300 hover:shadow-lg transition-all duration-200 border border-gray-50 bg-white rounded-3xl shadow-md p-6 hover:bg-teal-50"
-              onClick={async () => {
-                try {
-                  // Update payment method in backend
-                  await vendingAPI.updatePaymentMethod(
-                    currentOrder.order_id,
-                    "qris"
-                  );
-                  setPaymentMethod("qris");
-                } catch (error) {
-                  console.error("Failed to update payment method:", error);
-                  toast.error("Gagal memilih metode pembayaran");
-                }
-              }}
-            >
-              <div className="flex items-center space-x-4">
-                <div className="rounded-xl text-white">
-                  {/* <QrCode className="h-6 w-6" /> */}
-                  <Image
-                    src="/qris-logo.png"
-                    alt="QRIS Logo"
-                    width={40}
-                    height={40}
-                    className="mt-2"
-                  />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-lg text-gray-900">QRIS</h3>
-                  <p className="text-gray-600">
-                    Scan QR Code dengan aplikasi mobile banking
-                  </p>
-                </div>
-                <div className="text-teal-500 font-bold text-xl">→</div>
-              </div>
-            </div>
+
           </div>
         </div>
       </div>
@@ -375,7 +340,7 @@ const PaymentScreen: React.FC = () => {
   // Show Midtrans payment
   if (paymentMethod === "midtrans") {
     return (
-      <div className="min-h-screen bg-teal-50 p-6">
+      <div className="min-h-screen bg-amber-50/30 p-6">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center mb-6">
             <button
@@ -383,38 +348,38 @@ const PaymentScreen: React.FC = () => {
                 setPaymentMethod(null);
                 setPaymentToken(null); // Clear token when going back
               }}
-              className="p-2 rounded-full bg-white border border-teal-100 text-teal-700 shadow-sm hover:shadow-md transition mr-4"
+              className="p-3 rounded-full bg-white border border-gray-100 text-orange-500 shadow-sm hover:shadow-md transition mr-4 hover:bg-orange-50"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div>
-              <div className="flex items-center gap-2 text-teal-600 text-xs font-semibold uppercase tracking-widest">
+              <div className="flex items-center gap-2 text-orange-600 text-xs font-bold uppercase tracking-widest mb-1">
                 <ShieldCheck className="h-4 w-4" /> Midtrans
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-black text-amber-900 tracking-tight">
                 Pembayaran Midtrans
               </h1>
             </div>
           </div>
 
-          <div className="border border-teal-100 bg-white rounded-3xl shadow-md p-8 text-center">
-            <div className="bg-teal-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-white">
+          <div className="border border-amber-100 bg-white rounded-[2rem] shadow-xl shadow-amber-100/20 p-8 text-center">
+            <div className="bg-orange-500 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-lg shadow-orange-200">
               <CreditCard className="h-10 w-10" />
             </div>
 
-            <h2 className="text-xl font-bold mb-4 text-gray-900">
+            <h2 className="text-2xl font-black mb-4 text-gray-900">
               Bayar dengan Midtrans
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-500 mb-8 max-w-sm mx-auto">
               Klik tombol di bawah untuk membuka halaman pembayaran yang aman
             </p>
 
-            <div className="bg-teal-50 rounded-2xl p-4 mb-6 border border-teal-100">
+            <div className="bg-amber-50 rounded-2xl p-6 mb-8 border border-amber-100">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-gray-900">
+                <span className="font-bold text-gray-900">
                   {selectedProduct.name}
                 </span>
-                <span className="font-black text-gray-900 text-xl">
+                <span className="font-black text-orange-600 text-2xl">
                   Rp {currentOrder.total_amount.toLocaleString("id-ID")}
                 </span>
               </div>
@@ -426,12 +391,12 @@ const PaymentScreen: React.FC = () => {
               variant="primary"
               fullWidth
               size="lg"
-              className="mb-4 bg-teal-500 hover:bg-teal-600"
+              className="mb-6 bg-orange-500 hover:bg-orange-600 border-none shadow-lg shadow-orange-200 py-4 h-auto text-lg rounded-2xl"
             >
               {isProcessing ? "Memproses..." : "💳 Bayar Sekarang"}
             </Button>
 
-            <p className="text-sm text-gray-600">
+            <p className="text-xs text-gray-400 font-medium">
               🔒 Powered by Midtrans - Payment Gateway Terpercaya
             </p>
           </div>
@@ -442,7 +407,7 @@ const PaymentScreen: React.FC = () => {
 
   // Show QRIS payment (existing implementation)
   return (
-    <div className="min-h-screen bg-teal-50 p-6">
+    <div className="min-h-screen bg-amber-50/30 p-6">
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center mb-6">
           <button
@@ -450,15 +415,15 @@ const PaymentScreen: React.FC = () => {
               setPaymentMethod(null);
               setPaymentToken(null); // Clear token when going back
             }}
-            className="p-2 rounded-full bg-white border border-teal-100 text-teal-500 shadow-sm hover:shadow-md transition mr-4"
+            className="p-3 rounded-full bg-white border border-gray-100 text-orange-500 shadow-sm hover:shadow-md transition mr-4 hover:bg-orange-50"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <div className="flex items-center gap-2 text-blue-700 text-xs font-semibold uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-orange-600 text-xs font-bold uppercase tracking-widest mb-1">
               <QrCode className="h-4 w-4" /> QRIS
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-black text-amber-900">
               Pembayaran QRIS
             </h1>
           </div>

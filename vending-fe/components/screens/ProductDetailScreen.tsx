@@ -54,7 +54,7 @@ const ProductDetailScreen: React.FC = () => {
 
   // Get full image URL
   const getImageUrl = (imageUrl: string | null) => {
-    if (!imageUrl) return "/images/placeholder-product.jpg";
+    if (!imageUrl) return "/images/placeholder-product.svg";
     if (imageUrl.startsWith("http")) return imageUrl;
     const backendUrl =
       process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";

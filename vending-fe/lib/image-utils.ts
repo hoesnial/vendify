@@ -14,7 +14,7 @@
 export function getImageUrl(imageUrl: string | null | undefined): string {
   // Return placeholder if no image
   if (!imageUrl) {
-    return "/images/placeholder-product.jpg";
+    return "/images/placeholder-product.svg";
   }
 
   // If already absolute URL (Supabase Storage), return as is

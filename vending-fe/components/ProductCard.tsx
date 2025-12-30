@@ -29,7 +29,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   // Get full image URL
   const getImageUrl = (imageUrl: string | null) => {
-    if (!imageUrl) return "/images/placeholder-product.jpg";
+    if (!imageUrl) return "/images/placeholder-product.svg";
 
     // If already full URL, return as is
     if (imageUrl.startsWith("http")) return imageUrl;

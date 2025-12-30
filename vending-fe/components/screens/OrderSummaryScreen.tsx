@@ -9,9 +9,9 @@ import {
   ArrowLeft,
   Smartphone,
   ClipboardCheck,
-  Pill,
+  Package,
   ShieldCheck,
-  Stethoscope,
+  ShoppingBag,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -36,10 +36,14 @@ const OrderSummaryScreen: React.FC = () => {
 
   if (!hasCartItems && !hasSingleProduct) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-amber-50/30 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Tidak ada produk dipilih</p>
-          <Button variant="primary" onClick={() => setCurrentScreen("home")}>
+          <Button
+            variant="primary"
+            onClick={() => setCurrentScreen("home")}
+            className="bg-orange-500 hover:bg-orange-600"
+          >
             Kembali ke Beranda
           </Button>
         </div>
@@ -176,62 +180,61 @@ const OrderSummaryScreen: React.FC = () => {
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setCustomerPhone(formatted);
+    setCustomerPhone(e.target.value);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-amber-50/30 p-6">
       <div className="max-w-2xl mx-auto">
         {/* Header with Back Button */}
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={handleBack}
             disabled={isLoading}
-            className="p-2 rounded-full bg-white border border-gray-50 text-teal-500 shadow-sm hover:shadow-md transition"
+            className="p-3 rounded-full bg-white border border-gray-100 text-orange-500 shadow-sm hover:shadow-md transition hover:bg-orange-50"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="text-center">
-            <div className="flex items-center justify-center gap-2 text-teal-500 text-xs font-semibold uppercase tracking-[0.2em]">
-              <Stethoscope className="h-4 w-4" /> Pesanan Obat
+            <div className="flex items-center justify-center gap-2 text-orange-600 text-xs font-bold uppercase tracking-[0.2em] mb-1">
+              <ShoppingBag className="h-4 w-4" /> Checkout
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Cart</h1>
+            <h1 className="text-2xl font-black text-amber-900 tracking-tight">Rincian Pesanan</h1>
           </div>
-          <div className="w-12 h-12 rounded-full bg-teal-400 flex items-center justify-center text-white font-bold text-lg shadow-md">
+          <div className="w-12 h-12 rounded-2xl bg-orange-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-orange-200">
             {quantity}
           </div>
         </div>
 
         {/* Cart Items - Rounded container */}
-        <div className="bg-white rounded-3xl p-6 mb-6 shadow-md border border-gray-100">
+        <div className="bg-white rounded-[2rem] p-6 mb-6 shadow-xl shadow-amber-100/20 border border-amber-100">
           {/* Product Items */}
           <div className="space-y-3 mb-6">
             {displayItems.map((item, index) => (
               <div
                 key={index}
-                className="flex items-center space-x-3 bg-teal-50 rounded-2xl p-3 border border-teal-50"
+                className="flex items-center space-x-4 bg-amber-50/50 rounded-2xl p-4 border border-amber-100/50 hover:border-orange-200 transition-colors"
               >
-                {/* Product Image */}
-                <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center border border-teal-50 text-teal-400">
-                  <Pill className="h-6 w-6" />
+                {/* Product Image Placeholder */}
+                <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center border border-amber-100 text-orange-400 shadow-sm">
+                  <Package className="h-7 w-7" />
                 </div>
 
                 {/* Product Info */}
                 <div className="flex-1">
-                  <h3 className="text-gray-900 font-semibold">
+                  <h3 className="text-gray-900 font-bold text-lg leading-tight">
                     {item.name}
-                    <span className="text-teal-500 ml-2 text-xs">
+                    <span className="text-orange-600 ml-2 text-sm font-semibold">
                       x{item.quantity}
                     </span>
                   </h3>
-                  <p className="text-gray-600 text-xs">
-                    {item.description || "Produk"}
+                  <p className="text-gray-500 text-sm mt-0.5">
+                    {item.description || "Snack & Minuman"}
                   </p>
                 </div>
 
                 {/* Price */}
-                <div className="bg-teal-400 text-white font-bold px-3 py-1.5 rounded-full text-sm">
+                <div className="bg-orange-100 text-orange-700 font-bold px-3 py-1.5 rounded-lg text-sm">
                   {formatPrice(item.unitPrice * item.quantity)}
                 </div>
               </div>
@@ -239,20 +242,20 @@ const OrderSummaryScreen: React.FC = () => {
           </div>
 
           {/* Tax & Total Card */}
-          <div className="bg-teal-50 rounded-2xl p-5 border border-teal-50">
+          <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100">
             <div className="relative z-10">
               {/* Subtotal */}
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-600 text-sm">Subtotal</span>
-                <span className="text-gray-900 font-semibold">
+              <div className="flex items-center justify-between mb-3 text-sm font-medium">
+                <span className="text-gray-500">Subtotal</span>
+                <span className="text-gray-900">
                   {formatPrice(subtotal)}
                 </span>
               </div>
 
               {/* Tax Amount */}
-              <div className="flex items-center justify-between mb-3 pb-3 border-b border-teal-100">
-                <span className="text-teal-500 font-semibold text-sm flex items-center gap-2">
-                  <ClipboardCheck className="h-4 w-4" /> Tax (11%)
+              <div className="flex items-center justify-between mb-4 pb-4 border-b border-amber-200">
+                <span className="text-amber-700 font-medium text-sm flex items-center gap-2">
+                  <ClipboardCheck className="h-4 w-4" /> PPN (11%)
                 </span>
                 <span className="text-gray-900 font-bold">
                   {formatPrice(tax)}
@@ -261,10 +264,10 @@ const OrderSummaryScreen: React.FC = () => {
 
               {/* Total Amount */}
               <div>
-                <p className="text-teal-500 font-semibold text-sm mb-1 flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5" /> Total Amount
+                <p className="text-orange-600 font-bold text-sm mb-1 flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5" /> Total Pembayaran
                 </p>
-                <p className="text-3xl font-bold text-gray-900">
+                <p className="text-3xl font-black text-gray-900 tracking-tight">
                   {formatPrice(totalPrice)}
                 </p>
               </div>
@@ -274,11 +277,14 @@ const OrderSummaryScreen: React.FC = () => {
 
         {/* Contact Info (Optional) */}
         {customerPhone && (
-          <div className="bg-white rounded-2xl p-3 mb-4 border border-teal-100 shadow-sm">
-            <div className="flex items-center space-x-2 text-gray-900">
-              <Smartphone className="h-4 w-4 text-teal-600" />
-              <span className="text-sm font-medium">{customerPhone}</span>
-            </div>
+          <div className="bg-white rounded-2xl p-4 mb-4 border border-amber-100 shadow-sm flex items-center gap-3">
+             <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+                <Smartphone className="h-5 w-5" />
+             </div>
+             <div>
+                <p className="text-xs text-gray-500 font-medium">Nomor WhatsApp</p>
+                <p className="text-gray-900 font-bold">{customerPhone}</p>
+             </div>
           </div>
         )}
 
@@ -286,30 +292,30 @@ const OrderSummaryScreen: React.FC = () => {
         <button
           onClick={handleCreateOrder}
           disabled={isLoading}
-          className="w-full bg-teal-400 hover:bg-teal-500 text-white font-bold text-lg py-5 rounded-2xl shadow-md transition-all hover:scale-x-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg py-5 rounded-2xl shadow-lg shadow-orange-200 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 active:scale-95"
         >
           {isLoading ? (
             <div className="flex items-center">
               <Loading />
-              <span className="ml-2">Processing...</span>
+              <span className="ml-2">Memproses...</span>
             </div>
           ) : (
             <>
-              <span>Make Payment</span>
+              <span>Lanjut Pembayaran</span>
             </>
           )}
         </button>
 
         {/* Optional: Phone Input */}
         <div className="mt-4">
-          <details className="bg-white rounded-2xl border border-gray-50 overflow-hidden shadow-sm">
-            <summary className="p-3 cursor-pointer text-gray-900 font-medium flex items-center justify-between hover:bg-gray-50 transition-colors">
-              <span className="flex items-center space-x-2 text-sm">
-                <Smartphone className="h-4 w-4 text-teal-600" />
-                <span>Add Contact (Optional)</span>
+          <details className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm group">
+            <summary className="p-4 cursor-pointer text-gray-700 font-medium flex items-center justify-between hover:bg-gray-50 transition-colors">
+              <span className="flex items-center space-x-3 text-sm">
+                <Smartphone className="h-5 w-5 text-orange-500" />
+                <span className="font-semibold text-gray-900">Simpan Nomor WA (Opsional)</span>
               </span>
               <svg
-                className="w-4 h-4 text-gray-400"
+                className="w-5 h-5 text-gray-400 group-open:rotate-180 transition-transform"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -322,27 +328,27 @@ const OrderSummaryScreen: React.FC = () => {
                 />
               </svg>
             </summary>
-            <div className="p-3 pt-0 bg-teal-50/60">
+            <div className="p-4 pt-0 bg-white">
               <input
                 type="tel"
                 value={customerPhone}
                 onChange={handlePhoneChange}
-                placeholder="+62 812-3456-7890"
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+                placeholder="Contoh: 08123456789"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm transition-all"
                 disabled={isLoading}
               />
-              <p className="text-xs text-gray-600 mt-1.5">
-                For order status notifications
+              <p className="text-xs text-amber-700 mt-2 flex items-center gap-1">
+                <ShieldCheck className="h-3 w-3" />
+                Kami akan mengirimkan notifikasi status pesanan ke nomor ini.
               </p>
             </div>
           </details>
         </div>
 
         {/* Terms */}
-        <div className="text-xs text-gray-600 text-center mt-4">
-          <p className="inline-flex items-center gap-1 text-teal-500">
-            <ShieldCheck className="h-3.5 w-3.5" /> Payment will expire in 15
-            minutes
+        <div className="text-xs text-gray-500 text-center mt-6">
+          <p className="inline-flex items-center gap-1.5 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100 text-amber-800 font-medium">
+            <ShieldCheck className="h-3.5 w-3.5 text-orange-500" /> Sisa waktu pembayaran: 15 menit
           </p>
         </div>
       </div>

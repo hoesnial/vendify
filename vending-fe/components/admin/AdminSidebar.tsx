@@ -57,12 +57,7 @@ export default function AdminSidebar() {
       icon: Receipt,
       href: "/admin/transactions",
     },
-    {
-      id: "products",
-      label: "Products",
-      icon: Store, // Using Store icon which is already imported, or verify imports
-      href: "/admin/products",
-    },
+
     {
       id: "announcements",
       label: "Announcements",

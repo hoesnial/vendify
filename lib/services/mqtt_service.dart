@@ -31,11 +31,17 @@ class MqttService {
   bool get isConnected => _isConnected;
 
   // MQTT Configuration - HiveMQ Cloud (same as backend)
-  static const String defaultBroker = '';
+  // MQTT Configuration - HiveMQ Cloud
+  // PENTING: Isi dengan Hostname SAJA (tanpa mqtts:// dan tanpa :port)
+  static const String defaultBroker =
+      '5ab94abc71974f2c87741c0737fcb46e.s1.eu.hivemq.cloud';
   static const int defaultPort = 8883; // TLS/SSL port
-  static const String defaultUsername = 'vending-backend';
-  static const String defaultPassword = 'Vending-backend123.';
-  static const String machineId = 'VM01'; // Should match backend MACHINE_ID
+
+  // ISI USERNAME & PASSWORD HIVEMQ DISINI
+  static const String defaultUsername = 'espVenMac';
+  static const String defaultPassword = 'Password123';
+
+  static const String machineId = 'VM01';
 
   Future<bool> connect({
     String? brokerUrl,
@@ -44,10 +50,16 @@ class MqttService {
     String? password,
   }) async {
     try {
-      final broker = brokerUrl ?? defaultBroker;
+      var broker = brokerUrl ?? defaultBroker;
       final brokerPort = port ?? defaultPort;
       final user = username ?? defaultUsername;
       final pass = password ?? defaultPassword;
+
+      // Sanitize broker URL (remove protocol and port if pasted by mistake)
+      broker = broker.replaceAll('mqtts://', '').replaceAll('mqtt://', '');
+      if (broker.contains(':')) {
+        broker = broker.split(':')[0];
+      }
 
       print('🔌 Connecting to MQTT broker: $broker:$brokerPort');
 
@@ -56,7 +68,7 @@ class MqttService {
           'flutter_vending_${DateTime.now().millisecondsSinceEpoch}';
 
       _client = MqttServerClient.withPort(broker, clientId, brokerPort);
-      _client!.logging(on: false); // Disable verbose logging
+      _client!.logging(on: true); // Enable logging for debugging
       _client!.keepAlivePeriod = 60;
       _client!.autoReconnect = true;
       _client!.secure = true; // Enable TLS for secure connection

@@ -30,27 +30,56 @@ class Product {
   factory Product.fromJson(Map<String, dynamic> json) {
     // Handle stock from different sources (same as web)
     // Web uses: current_stock from slot
+    // Handle stock - check slots array first (common API response)
     int stockValue = 0;
-    if (json['current_stock'] != null) {
-      stockValue = json['current_stock'] is String
-          ? int.tryParse(json['current_stock']) ?? 0
-          : json['current_stock'] ?? 0;
-    } else if (json['stock'] != null) {
-      stockValue = json['stock'] is String
-          ? int.tryParse(json['stock']) ?? 0
-          : json['stock'] ?? 0;
+    int? slotIdValue;
+    int? slotNumberValue;
+
+    if (json['slots'] != null && json['slots'] is List) {
+      final slots = json['slots'] as List;
+      for (var slot in slots) {
+        if (slot['current_stock'] != null) {
+          int sStock = slot['current_stock'] is String
+              ? int.tryParse(slot['current_stock']) ?? 0
+              : slot['current_stock'] ?? 0;
+          stockValue += sStock;
+        }
+
+        // Take the first slot's ID and number if we don't have one yet
+        if (slotIdValue == null && slot['slot_id'] != null) {
+          slotIdValue = slot['slot_id'] is String
+              ? int.tryParse(slot['slot_id']) ?? null
+              : slot['slot_id'];
+        }
+        if (slotNumberValue == null && slot['slot_number'] != null) {
+          slotNumberValue = slot['slot_number'] is String
+              ? int.tryParse(slot['slot_number']) ?? null
+              : slot['slot_number'];
+        }
+      }
     }
 
-    // Handle slot_id (needed for order creation)
-    int? slotIdValue;
+    // Fallback to direct properties if slots array didn't yield results OR wasn't present
+    if (stockValue == 0) {
+      if (json['current_stock'] != null) {
+        stockValue = json['current_stock'] is String
+            ? int.tryParse(json['current_stock']) ?? 0
+            : json['current_stock'] ?? 0;
+      } else if (json['stock'] != null) {
+        stockValue = json['stock'] is String
+            ? int.tryParse(json['stock']) ?? 0
+            : json['stock'] ?? 0;
+      }
+    }
+
+    // Handle slot_id property override
     if (json['slot_id'] != null) {
       slotIdValue = json['slot_id'] is String
           ? int.tryParse(json['slot_id']) ?? null
           : json['slot_id'];
     }
 
-    // Handle slot_number
-    int? slotNumberValue;
+    // Handle slot_number property override
     if (json['slot_number'] != null) {
       slotNumberValue = json['slot_number'] is String
           ? int.tryParse(json['slot_number']) ?? null

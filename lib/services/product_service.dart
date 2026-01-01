@@ -12,88 +12,47 @@ class ProductService {
 
   // Get all products (using /available endpoint like web)
   Future<List<Product>> getAllProducts() async {
-    // try {
-    //   // Use the same endpoint as web: /products/available
-    //   final response = await _apiService.get(
-    //     '${ApiEndpoints.products}/available',
-    //   );
+    try {
+      // Use the same endpoint as web: /products
+      // Note: The backend /api/products endpoint returns a list directly or { data: [...] }
+      final response = await _apiService.get(ApiEndpoints.products);
 
-    //   // Handle new Supabase response format: { success: true, data: [...] }
-    //   // Or legacy format: { machine_id: "VM01", products: [...] }
-    //   List<dynamic> productsJson;
+      // Handle response formats
+      List<dynamic> productsJson;
 
-    //   if (response is Map<String, dynamic>) {
-    //     // New format with "data" key
-    //     if (response.containsKey('data')) {
-    //       productsJson = response['data'] as List<dynamic>;
-    //     }
-    //     // Legacy format with "products" key
-    //     else if (response.containsKey('products')) {
-    //       productsJson = response['products'] as List<dynamic>;
-    //     }
-    //     // Direct array response
-    //     else {
-    //       throw Exception('Unexpected response format: $response');
-    //     }
-    //   }
-    //   // Direct array response
-    //   else if (response is List) {
-    //     productsJson = response;
-    //   } else {
-    //     throw Exception('Unexpected response type: ${response.runtimeType}');
-    //   }
+      if (response is Map<String, dynamic>) {
+        // Format with "data" key
+        if (response.containsKey('data')) {
+          productsJson = response['data'] as List<dynamic>;
+        }
+        // Legacy format with "products" key
+        else if (response.containsKey('products')) {
+          productsJson = response['products'] as List<dynamic>;
+        }
+        // Direct array response but wrapped in Map (unlikely for get)
+        else {
+          // Fallback: try to see if the map itself is a product (unlikely for list)
+          // or maybe it's an error?
+          if (response.containsKey('error')) {
+            throw Exception(response['error']);
+          }
+          // If we can't find a list, return empty or throw
+          productsJson = [];
+          print('Warning: Unexpected product response format: $response');
+        }
+      }
+      // Direct array response
+      else if (response is List) {
+        productsJson = response;
+      } else {
+        throw Exception('Unexpected response type: ${response.runtimeType}');
+      }
 
-    //   // Debug: Print first product to see structure
-    //   if (productsJson.isNotEmpty) {
-    //     print('First product from API: ${productsJson[0]}');
-    //   }
-
-    //   return productsJson.map((json) => Product.fromJson(json)).toList();
-    // } catch (e) {
-    //   print('Error getting products: $e');
-    //   rethrow;
-    // }
-
-    // DUMMY DATA (API OFF)
-    await Future.delayed(const Duration(seconds: 1)); // Simulate network delay
-    return [
-      Product(
-        id: '1',
-        name: 'Keripik Kentang',
-        description: 'Keripik kentang renyah rasa original 50gr',
-        price: 15000,
-        stock: 5,
-        imageUrl: '', // Kosong agar pakai Skeleton
-        category: 'Snack',
-        isAvailable: true,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ),
-      Product(
-        id: '2',
-        name: 'Coklat Batang',
-        description: 'Coklat susu manis lezat 30gr',
-        price: 12000,
-        stock: 0, // Habis
-        imageUrl: '',
-        category: 'Coklat',
-        isAvailable: false,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ),
-      Product(
-        id: '3',
-        name: 'Air Mineral',
-        description: 'Air mineral pegunungan 600ml',
-        price: 5000,
-        stock: 10,
-        imageUrl: '',
-        category: 'Minuman',
-        isAvailable: true,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ),
-    ];
+      return productsJson.map((json) => Product.fromJson(json)).toList();
+    } catch (e) {
+      print('Error getting products: $e');
+      rethrow;
+    }
   }
 
   // Get product by ID

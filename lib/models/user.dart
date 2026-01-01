@@ -47,7 +47,8 @@ class User {
     };
   }
 
-  bool get isAdmin => role == 'admin';
+  bool get isAdmin =>
+      ['admin', 'ADMIN', 'super_admin', 'SUPER_ADMIN'].contains(role);
   bool get isBuyer => role == 'buyer';
   bool get isGuest => role == 'guest';
 }

@@ -302,7 +302,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
             : _filteredProducts.isEmpty
             ? _buildEmptyState()
             : GridView.builder(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 120),
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

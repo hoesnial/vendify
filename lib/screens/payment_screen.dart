@@ -1637,47 +1637,78 @@ class _DispensingScreenState extends State<_DispensingScreen>
           ),
           // Bottom button
           Padding(
-            padding: const EdgeInsets.all(24),
-            child: SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton(
-                onPressed: () {
-                  // Show help dialog
-                  showDialog(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Ada Masalah?'),
-                      content: const Text(
-                        'Jika produk tidak keluar dalam 30 detik, silakan hubungi customer service.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(ctx).pop(),
-                          child: const Text('OK'),
+            padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
+            child: Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      // Show help dialog
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Ada Masalah?'),
+                          content: const Text(
+                            'Jika produk tidak keluar dalam 30 detik, silakan hubungi customer service.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              child: const Text('OK'),
+                            ),
+                          ],
                         ),
-                      ],
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      side: BorderSide(
+                        color: AppTheme.textSecondary.withOpacity(0.3),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(9999),
+                      ),
                     ),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  side: BorderSide(
-                    color: AppTheme.textSecondary.withOpacity(0.3),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(9999),
-                  ),
-                ),
-                child: const Text(
-                  'Ada Masalah?',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                    child: const Text(
+                      'Ada Masalah?',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 12),
+                // Dev/Test Button to Force Success
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _currentStep = 3;
+                    });
+                    // Simulate success transition
+                    Future.delayed(const Duration(seconds: 1), () {
+                      if (mounted) {
+                        if (widget.shouldClearCart) {
+                          widget.cartProvider.clear();
+                        }
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const _PurchaseCompleteScreen(),
+                          ),
+                        );
+                      }
+                    });
+                  },
+                  child: const Text(
+                    'Simulasi Sukses (Dev Only)',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

@@ -21,7 +21,8 @@ class AuthService {
   Map<String, dynamic>? get userData => _userData;
   String? get role => _role;
   bool get isLoggedIn => _token != null;
-  bool get isAdmin => _role == 'admin';
+  bool get isAdmin =>
+      ['admin', 'ADMIN', 'super_admin', 'SUPER_ADMIN'].contains(_role);
   bool get isBuyer => _role == 'buyer';
   bool get isGuest => _role == 'guest';
 
@@ -97,12 +98,13 @@ class AuthService {
     String? fcmToken,
   }) async {
     try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/users/login');
-      print('Login URL: $url');
+      // 1. Try Customer Login (users table)
+      print('Attempting Customer Login...');
+      final customerUrl = Uri.parse('${ApiConfig.baseUrl}/users/login');
 
-      final response = await http
+      final customerResponse = await http
           .post(
-            url,
+            customerUrl,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'email': email,
@@ -112,18 +114,16 @@ class AuthService {
           )
           .timeout(ApiConfig.connectionTimeout);
 
-      print('Login response: ${response.statusCode}');
-      final data = jsonDecode(response.body);
+      print('Customer Login response: ${customerResponse.statusCode}');
 
-      if (response.statusCode == 200) {
+      if (customerResponse.statusCode == 200) {
+        final data = jsonDecode(customerResponse.body);
         if (data['success'] == true) {
-          // Save token and user data
           await _saveAuthData(
             token: data['token'],
             userData: data['user'],
             role: data['user']['role'],
           );
-
           return {
             'success': true,
             'message': 'Login successful',
@@ -133,6 +133,48 @@ class AuthService {
         }
       }
 
+      // 2. If Customer Login fails (401/404), Try Admin Login (admin_users table)
+      if (customerResponse.statusCode == 401 ||
+          customerResponse.statusCode == 404) {
+        print('Customer Login failed, attempting Admin Login...');
+        final adminUrl = Uri.parse('${ApiConfig.baseUrl}/auth/login');
+
+        // Note: Admin endpoint now accepts 'email' in body alongside 'username'
+        final adminResponse = await http
+            .post(
+              adminUrl,
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'email': email, // Send as email (backend supports it now)
+                'username': email, // Fallback: Send email as username too
+                'password': password,
+              }),
+            )
+            .timeout(ApiConfig.connectionTimeout);
+
+        print('Admin Login response: ${adminResponse.statusCode}');
+
+        if (adminResponse.statusCode == 200) {
+          final data = jsonDecode(adminResponse.body);
+          // Admin endpoint returns { token, user: {...} } structure
+          if (data['token'] != null) {
+            await _saveAuthData(
+              token: data['token'],
+              userData: data['user'],
+              role: data['user']['role'] ?? 'admin', // Ensure role is set
+            );
+            return {
+              'success': true,
+              'message': 'Admin Login successful',
+              'user': data['user'],
+              'role': data['user']['role'] ?? 'admin',
+            };
+          }
+        }
+      }
+
+      // Default failure response (parse from customer response usually)
+      final data = jsonDecode(customerResponse.body);
       return {'success': false, 'message': data['message'] ?? 'Login failed'};
     } catch (e) {
       print('Login error: $e');

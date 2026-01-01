@@ -53,7 +53,8 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         // Navigate based on role
-        if (role == 'admin') {
+        final adminRoles = ['admin', 'ADMIN', 'super_admin', 'SUPER_ADMIN'];
+        if (role != null && adminRoles.contains(role)) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (_) => const AdminDashboardModernScreen(),

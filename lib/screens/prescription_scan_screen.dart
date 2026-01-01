@@ -336,7 +336,7 @@ class _PrescriptionScanScreenState extends State<PrescriptionScanScreen>
                   ),
                 ),
                 Text(
-                  'Arahkan kamera ke resep',
+                  'Arahkan kamera ke barcode',
                   style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],

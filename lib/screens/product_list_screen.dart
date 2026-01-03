@@ -20,7 +20,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
   List<Product> _filteredProducts = [];
   bool _isLoading = true;
   String? _errorMessage;
-  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -30,7 +29,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -175,41 +173,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
           ),
 
           // Search Bar (outside SafeArea to allow proper scrolling)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Cari snack, coklat, permen...',
-                  hintStyle: TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 15,
-                  ),
-                  prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                ),
-                onChanged: (value) {
-                  // Implement search logic
-                },
-              ),
-            ),
-          ),
         ],
       ),
     );

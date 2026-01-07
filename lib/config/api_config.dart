@@ -12,8 +12,8 @@ class ApiConfig {
   // static const String frontendUrl = 'http://localhost:3000'; // iOS Simulator
 
   // Production URLs - Update with your actual Render & Vercel URLs
-  static const String productionUrl =
-      'https://vendify-be-production.up.railway.app/api';
+  static const String productionUrl = 'http://169.254.86.244:3001/api';
+  // 'https://vendify-be-production.up.railway.app/api';
   static const String productionFrontendUrl = 'http://169.254.86.244:3000';
 
   // Current environment

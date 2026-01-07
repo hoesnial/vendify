@@ -439,56 +439,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
     });
   }
 
-  void _triggerDispense() {
-    if (_payment == null) {
-      print('⚠️ Cannot trigger dispense - no payment info');
-      return;
-    }
-
-    // Get slot number from payment
-    final itemsToBuy = _itemsToProcess;
-    if (itemsToBuy.isEmpty) {
-      print('⚠️ Cannot trigger dispense - no items to buy');
-      return;
-    }
-
-    final firstItem = itemsToBuy.first;
-    final slotId = firstItem.product.slotId;
-
-    if (slotId == null) {
-      print('⚠️ Cannot trigger dispense - no slot ID');
-      return;
-    }
-
-    print('📤 Triggering MQTT dispense command...');
-    print('   Order ID: ${_payment!.orderId}');
-    print('   Slot: $slotId');
-
-    final published = _mqttService.publishDispenseCommand(
-      orderId: _payment!.orderId,
-      slot: slotId,
-    );
-
-    if (published) {
-      print('✅ Dispense command published via MQTT');
-    } else {
-      print('❌ Failed to publish dispense command');
-    }
-  }
-
   void _handlePaymentSuccess() {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-
-    // Trigger MQTT dispense command
-    _triggerDispense();
-
-    if (!mounted) return;
 
     // Navigate to dispensing screen
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => _DispensingScreen(
           orderId: _payment!.orderId,
+          items: _itemsToProcess,
           cartProvider: cartProvider,
           mqttService: _mqttService,
           // IMPORTANT: Only clear cart if this was NOT a Buy Now (direct) purchase
@@ -1433,6 +1392,7 @@ class _EKGPainter extends CustomPainter {
 // Dispensing Screen
 class _DispensingScreen extends StatefulWidget {
   final String orderId;
+  final List<CartItem> items;
   final CartProvider cartProvider;
   final MqttService mqttService;
   final bool shouldClearCart;
@@ -1440,6 +1400,7 @@ class _DispensingScreen extends StatefulWidget {
   const _DispensingScreen({
     Key? key,
     required this.orderId,
+    required this.items,
     required this.cartProvider,
     required this.mqttService,
     this.shouldClearCart = true,
@@ -1452,8 +1413,13 @@ class _DispensingScreen extends StatefulWidget {
 class _DispensingScreenState extends State<_DispensingScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _progressController;
+  int _currentItemIndex = 0;
+  bool _isWaitingForConfirmation = false;
   int _currentStep = 1; // 1=Payment, 2=Sending Command, 3=Dispensed
   StreamSubscription? _dispenseSubscription;
+
+  // Track dispensed quantity for current item
+  int _currentQuantityDispensed = 0;
 
   @override
   void initState() {
@@ -1470,34 +1436,78 @@ class _DispensingScreenState extends State<_DispensingScreen>
       final success = result['success'] as bool? ?? false;
       final orderId = result['orderId'] as String?;
 
-      if (orderId == widget.orderId) {
-        if (success) {
-          setState(() {
-            _currentStep = 3;
-          });
-          // Wait a moment then navigate to success screen
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              if (widget.shouldClearCart) {
-                widget.cartProvider.clear();
-              }
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) => const _PurchaseCompleteScreen(),
-                ),
-              );
-            }
-          });
-        }
+      if (orderId == widget.orderId && success) {
+        _handleDispenseSuccess();
       }
     });
 
-    // Simulate progress through steps
-    Future.delayed(const Duration(seconds: 3), () {
+    // Start dispensing first item after a short delay
+    Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
-        setState(() {
-          _currentStep = 2;
-        });
+        _processNextDispense();
+      }
+    });
+  }
+
+  void _processNextDispense() {
+    if (_currentItemIndex >= widget.items.length) {
+      // All items dispensed
+      setState(() {
+        _currentStep = 3;
+      });
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          if (widget.shouldClearCart) {
+            widget.cartProvider.clear();
+          }
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => const _PurchaseCompleteScreen(),
+            ),
+          );
+        }
+      });
+      return;
+    }
+
+    // Get current item to dispense
+    final currentItem = widget.items[_currentItemIndex];
+
+    // Check if we need to dispense more of this item (quantity > 1)
+    if (_currentQuantityDispensed < currentItem.quantity) {
+      setState(() {
+        _currentStep = 2;
+        _isWaitingForConfirmation = true;
+      });
+
+      // Send MQTT command
+      print(
+        '📤 Dispensing item ${_currentItemIndex + 1}/${widget.items.length} (Qty: ${_currentQuantityDispensed + 1}/${currentItem.quantity})',
+      );
+      widget.mqttService.publishDispenseCommand(
+        orderId: widget.orderId,
+        slot: currentItem.product.slotId!,
+      );
+    } else {
+      // Done with this item, move to next
+      _currentItemIndex++;
+      _currentQuantityDispensed = 0;
+      _processNextDispense();
+    }
+  }
+
+  void _handleDispenseSuccess() {
+    if (!_isWaitingForConfirmation) return;
+
+    setState(() {
+      _isWaitingForConfirmation = false;
+      _currentQuantityDispensed++;
+    });
+
+    // Wait a bit before next dispense to avoid jamming
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        _processNextDispense();
       }
     });
   }
@@ -1685,23 +1695,14 @@ class _DispensingScreenState extends State<_DispensingScreen>
                 // Dev/Test Button to Force Success
                 TextButton(
                   onPressed: () {
-                    setState(() {
-                      _currentStep = 3;
-                    });
-                    // Simulate success transition
-                    Future.delayed(const Duration(seconds: 1), () {
-                      if (mounted) {
-                        if (widget.shouldClearCart) {
-                          widget.cartProvider.clear();
-                        }
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const _PurchaseCompleteScreen(),
-                          ),
-                        );
-                      }
-                    });
+                    // Send fake signal via MQTT so Backend can decrement stock
+                    if (_currentItemIndex < widget.items.length) {
+                      final item = widget.items[_currentItemIndex];
+                      widget.mqttService.publishSimulatedDispenseResult(
+                        orderId: widget.orderId,
+                        slot: item.product.slotId!,
+                      );
+                    }
                   },
                   child: const Text(
                     'Simulasi Sukses (Dev Only)',

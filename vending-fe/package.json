@@ -16,6 +16,7 @@
     "clsx": "^2.0.0",
     "lucide-react": "^0.544.0",
     "midtrans-client": "^1.4.3",
+    "mqtt": "^5.14.1",
     "next": "^15.5.7",
     "react": "19.1.0",
     "react-dom": "19.1.0",

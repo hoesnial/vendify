@@ -34,12 +34,12 @@ class MqttService {
   // MQTT Configuration - HiveMQ Cloud
   // PENTING: Isi dengan Hostname SAJA (tanpa mqtts:// dan tanpa :port)
   static const String defaultBroker =
-      '5ab94abc71974f2c87741c0737fcb46e.s1.eu.hivemq.cloud';
+      '9fde2eecc93040ba86ea98e093528087.s1.eu.hivemq.cloud';
   static const int defaultPort = 8883; // TLS/SSL port
 
   // ISI USERNAME & PASSWORD HIVEMQ DISINI
-  static const String defaultUsername = 'espVenMac';
-  static const String defaultPassword = 'Password123';
+  static const String defaultUsername = 'hoescodes';
+  static const String defaultPassword = '010702Bdg';
 
   static const String machineId = 'VM01';
 
@@ -191,7 +191,7 @@ class MqttService {
     }
 
     try {
-      final topic = 'vm/$machineId/command';
+      final topic = 'vm/$machineId/dispend';
       final payload = jsonEncode({
         'cmd': 'dispense',
         'orderId': orderId,
@@ -232,6 +232,38 @@ class MqttService {
       return true;
     } catch (e) {
       print('❌ Error publishing status: $e');
+      return false;
+    }
+  }
+
+  // Publish Simulated Dispense Result (For Dev/Testing without ESP32)
+  bool publishSimulatedDispenseResult({
+    required String orderId,
+    required int slot,
+  }) {
+    if (!_isConnected || _client == null) {
+      return false;
+    }
+
+    try {
+      final topic = 'vm/$machineId/dispense_result';
+      final payload = jsonEncode({
+        'orderId': orderId,
+        'slot': slot,
+        'success': true,
+        'dropDetected': true,
+        'timestamp': DateTime.now().toIso8601String(),
+        'message': 'Simulated dispense success',
+      });
+
+      final builder = MqttClientPayloadBuilder();
+      builder.addString(payload);
+
+      _client!.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
+      print('🧪 Published SIMULATED SUCCESS to $topic: $payload');
+      return true;
+    } catch (e) {
+      print('❌ Error publishing simulated result: $e');
       return false;
     }
   }

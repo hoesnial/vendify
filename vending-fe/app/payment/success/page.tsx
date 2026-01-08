@@ -125,7 +125,7 @@ function PaymentSuccessContent() {
                      alert("Network Error");
                    }
                 }}
-                variant="outline"
+                variant="secondary"
                 fullWidth
                 size="sm"
                 className="text-xs h-9 border-dashed text-gray-500 hover:text-gray-800"

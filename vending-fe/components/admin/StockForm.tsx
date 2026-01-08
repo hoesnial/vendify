@@ -21,12 +21,9 @@ export default function StockForm({
   onSuccess,
   onCancel,
 }: StockFormProps) {
-  const [method, setMethod] = useState<"add" | "set">("add");
-  const [quantity, setQuantity] = useState<number>(capacity - currentStock); // Default to fill
+  const [method, setMethod] = useState<"add" | "remove" | "set">("add");
+  const [quantity, setQuantity] = useState<number>(0); // Start with 0 for safety
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Auto-calculate fill amount when switching to 'set' and back to 'add' maybe?
-  // Let's keep it simple. If "add", we add X. If "set", we set to X.
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -39,15 +36,18 @@ export default function StockForm({
     setIsSubmitting(true);
 
     try {
+      let change_type = "MANUAL_ADJUST";
+      if (method === "add") change_type = "RESTOCK";
+      if (method === "remove") change_type = "REMOVE";
+
       const payload = {
           slot_id: slotId,
           quantity: Number(quantity),
-          change_type: method === "add" ? "RESTOCK" : "MANUAL_ADJUST",
-          reason: "Admin Manual Update"
+          change_type,
+          reason: "Admin Manual Update",
+          expected_current_stock: currentStock // OCC: Optimistic Locking
       };
       
-      // Call updateStock with the object expected by backend
-      // We'll update api.ts to handle this
       await vendingAPI.updateStock(payload);
 
       alert("Stok berhasil diperbarui!");
@@ -88,16 +88,25 @@ export default function StockForm({
         <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
            <button
              type="button"
-             onClick={() => setMethod("add")}
+             onClick={() => { setMethod("add"); setQuantity(0); }}
              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
                 method === "add" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
              }`}
            >
-             Add Stock
+             Add
            </button>
            <button
              type="button"
-             onClick={() => setMethod("set")}
+             onClick={() => { setMethod("remove"); setQuantity(0); }}
+             className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
+                method === "remove" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+             }`}
+           >
+             Remove
+           </button>
+           <button
+             type="button"
+             onClick={() => { setMethod("set"); setQuantity(currentStock); }}
              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
                 method === "set" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
              }`}
@@ -109,7 +118,7 @@ export default function StockForm({
 
       <div>
          <label className="block text-sm font-bold text-gray-700 mb-2">
-            {method === "add" ? "Quantity to Add" : "New Total Stock"}
+            {method === "add" ? "Quantity to Add" : method === "remove" ? "Quantity to Remove" : "New Total Stock"}
          </label>
          <div className="flex items-center gap-3">
              <button 
@@ -134,9 +143,14 @@ export default function StockForm({
                 <Plus className="h-5 w-5 text-gray-500" />
              </button>
          </div>
-         {method === "add" && (
+         {method !== "set" && (
             <p className="text-xs text-center text-gray-400 mt-2 font-medium">
-                New Total: <span className="text-amber-600 font-bold">{currentStock + quantity}</span>
+                New Total: <span className="text-amber-600 font-bold">
+                    {method === "add" 
+                        ? Math.min(currentStock + quantity, capacity) 
+                        : Math.max(currentStock - quantity, 0)
+                    }
+                </span>
             </p>
          )}
       </div>

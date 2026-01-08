@@ -18,6 +18,8 @@ import {
   User,
   History,
   LayoutGrid,
+  X,
+  Loader2,
 } from "lucide-react";
 import { vendingAPI } from "@/lib/api";
 
@@ -54,6 +56,24 @@ export default function AdminDashboard() {
   } | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const [lowStockList, setLowStockList] = useState<any[]>([]);
+  const [showLowStockModal, setShowLowStockModal] = useState(false);
+
+  const [showAlertsModal, setShowAlertsModal] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  const handleNavigation = (path: string) => {
+    setIsNavigating(true);
+    router.push(path);
+  };
+
+  const handleLock = () => {
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminUser");
+    router.replace("/admin");
+  };
+
   const [stats, setStats] = useState<DashboardStats>({
     salesToday: 0,
     criticalAlerts: 0,
@@ -100,7 +120,10 @@ export default function AdminDashboard() {
 
       // 1. Stats
       const currentTemp = tempRef.current; // Use Ref
-      const lowStockCount = productsData.products.filter(p => (p.current_stock || 0) < 5).length;
+      
+      const lowStockItemsData = productsData.products.filter(p => (p.current_stock || 0) < 5);
+      const lowStockCount = lowStockItemsData.length;
+      setLowStockList(lowStockItemsData);
       
       // Alerts Generation
       const generatedAlerts: Alert[] = [];
@@ -223,11 +246,17 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button className="flex items-center gap-2 h-10 px-4 rounded-xl bg-white border border-amber-200 hover:border-amber-400 text-amber-900 font-bold text-sm shadow-sm hover:shadow-md transition-all">
+              <button 
+                onClick={() => setShowAlertsModal(true)}
+                className="flex items-center gap-2 h-10 px-4 rounded-xl bg-white border border-amber-200 hover:border-amber-400 text-amber-900 font-bold text-sm shadow-sm hover:shadow-md transition-all"
+              >
                 <Bell className="h-4 w-4 text-amber-500" />
                 <span>Notifikasi ({stats.criticalAlerts})</span>
               </button>
-              <button className="flex items-center gap-2 h-10 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white border border-transparent font-bold text-sm shadow-md hover:shadow-lg transition-all">
+              <button 
+                onClick={handleLock}
+                className="flex items-center gap-2 h-10 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white border border-transparent font-bold text-sm shadow-md hover:shadow-lg transition-all"
+              >
                 <Lock className="h-4 w-4" />
                 <span>Kunci Layar</span>
               </button>
@@ -260,7 +289,10 @@ export default function AdminDashboard() {
             </div>
 
             {/* Alerts Card */}
-            <div className="bg-white p-6 rounded-3xl shadow-lg shadow-red-100/50 border border-red-50 flex flex-col justify-between h-40 relative group hover:border-red-200 transition-colors cursor-pointer">
+            <div 
+              onClick={() => setShowAlertsModal(true)}
+              className="bg-white p-6 rounded-3xl shadow-lg shadow-red-100/50 border border-red-50 flex flex-col justify-between h-40 relative group hover:border-red-200 transition-colors cursor-pointer"
+            >
               <div className="absolute top-4 right-4 p-2 bg-red-100 rounded-xl text-red-600">
                 <AlertTriangle className="h-6 w-6" />
               </div>
@@ -297,7 +329,10 @@ export default function AdminDashboard() {
             </div>
 
             {/* Low Stock Card */}
-            <div className="bg-white p-6 rounded-3xl shadow-lg shadow-orange-100/50 border border-orange-50 flex flex-col justify-between h-40 relative group cursor-pointer hover:border-orange-200 transition-colors">
+            <div 
+              onClick={() => setShowLowStockModal(true)}
+              className="bg-white p-6 rounded-3xl shadow-lg shadow-orange-100/50 border border-orange-50 flex flex-col justify-between h-40 relative group cursor-pointer hover:border-orange-200 transition-colors"
+            >
               <div className="absolute top-4 right-4 p-2 bg-orange-100 rounded-xl text-orange-600">
                 <Package className="h-6 w-6" />
               </div>
@@ -324,7 +359,10 @@ export default function AdminDashboard() {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Action Item 1 */}
-                <button className="flex flex-col gap-4 p-6 rounded-2xl bg-white border border-amber-100 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-100/50 transition-all text-left group h-40 justify-between">
+                <button 
+                  onClick={() => handleNavigation("/admin/temperature")}
+                  className="flex flex-col gap-4 p-6 rounded-2xl bg-white border border-amber-100 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-100/50 transition-all text-left group h-40 justify-between"
+                >
                   <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
                     <History className="h-6 w-6" />
                   </div>
@@ -339,7 +377,10 @@ export default function AdminDashboard() {
                 </button>
 
                 {/* Action Item 2 */}
-                <button className="flex flex-col gap-4 p-6 rounded-2xl bg-white border border-amber-100 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-100/50 transition-all text-left group h-40 justify-between relative overflow-hidden">
+                <button 
+                  onClick={() => handleNavigation("/admin/inventory")}
+                  className="flex flex-col gap-4 p-6 rounded-2xl bg-white border border-amber-100 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-100/50 transition-all text-left group h-40 justify-between relative overflow-hidden"
+                >
                   <div className="absolute top-4 right-4 px-2 py-1 bg-orange-100 text-orange-600 text-[10px] font-bold rounded-lg uppercase tracking-wider">
                     Penting
                   </div>
@@ -357,7 +398,10 @@ export default function AdminDashboard() {
                 </button>
 
                 {/* Action Item 3 */}
-                <button className="flex flex-col gap-4 p-6 rounded-2xl bg-white border border-amber-100 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-100/50 transition-all text-left group h-40 justify-between">
+                <button 
+                  onClick={() => handleNavigation("/admin/transactions")}
+                  className="flex flex-col gap-4 p-6 rounded-2xl bg-white border border-amber-100 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-100/50 transition-all text-left group h-40 justify-between"
+                >
                   <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
                     <ShoppingBag className="h-6 w-6" />
                   </div>
@@ -372,7 +416,10 @@ export default function AdminDashboard() {
                 </button>
 
                 {/* Action Item 4 */}
-                <button className="flex flex-col gap-4 p-6 rounded-2xl bg-white border border-amber-100 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-100/50 transition-all text-left group h-40 justify-between">
+                <button 
+                  onClick={() => handleNavigation("/admin/inventory")}
+                  className="flex flex-col gap-4 p-6 rounded-2xl bg-white border border-amber-100 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-100/50 transition-all text-left group h-40 justify-between"
+                >
                   <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center text-teal-500 group-hover:scale-110 transition-transform">
                     <ActivityIcon className="h-6 w-6" />
                   </div>
@@ -396,7 +443,10 @@ export default function AdminDashboard() {
                   <h3 className="text-gray-900 text-lg font-bold tracking-tight">
                     Alert Sistem
                   </h3>
-                  <button className="text-xs text-amber-500 font-bold hover:text-amber-600 uppercase tracking-wide">
+                  <button 
+                    onClick={() => setShowAlertsModal(true)}
+                    className="text-xs text-amber-500 font-bold hover:text-amber-600 uppercase tracking-wide"
+                  >
                     Lihat Semua
                   </button>
                 </div>
@@ -496,6 +546,164 @@ export default function AdminDashboard() {
           </div>
         </div>
       </main>
+
+      {/* Low Stock Modal */}
+      {showLowStockModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+                Daftar Stok Menipis
+              </h3>
+              <button 
+                onClick={() => setShowLowStockModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+               {lowStockList.length === 0 ? (
+                 <div className="text-center py-8 text-gray-500">
+                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
+                    <p className="font-bold">Stok Aman!</p>
+                    <p className="text-sm">Tidak ada produk dengan stok di bawah 5.</p>
+                 </div>
+               ) : (
+                 <div className="flex flex-col gap-4">
+                    {lowStockList.map((item) => (
+                      <div key={item.id} className="flex items-center gap-4 p-4 bg-orange-50 rounded-2xl border border-orange-100">
+                        {item.image_url ? (
+                            <img src={item.image_url} alt={item.name} className="h-12 w-12 rounded-lg object-cover bg-white" />
+                        ) : (
+                            <div className="h-12 w-12 rounded-lg bg-orange-200 flex items-center justify-center text-orange-600">
+                                <Package className="h-6 w-6" />
+                            </div>
+                        )}
+                        <div className="flex-1">
+                           <h4 className="font-bold text-gray-900">{item.name}</h4>
+                           <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                              <span className="bg-white px-2 py-0.5 rounded border border-orange-200 text-orange-700 font-mono font-bold">Slot {item.slot_number || item.slot_id}</span>
+                              <span>Kap: {item.capacity}</span>
+                           </div>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-xs text-gray-400 font-bold uppercase">Sisa</p>
+                            <p className={`text-xl font-black ${item.current_stock === 0 ? "text-red-500" : "text-orange-600"}`}>
+                                {item.current_stock}
+                            </p>
+                        </div>
+                      </div>
+                    ))}
+                 </div>
+               )}
+            </div>
+
+            <div className="p-6 bg-gray-50 border-t border-gray-100">
+                 <button 
+                    onClick={() => router.push("/admin/inventory")}
+                    className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg shadow-amber-200 transition-all flex items-center justify-center gap-2"
+                 >
+                    <Package className="h-5 w-5" />
+                    Kelola Stok (Restock)
+                 </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Critical Alerts Modal */}
+      {showAlertsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                Alert Sistem Kritikal
+              </h3>
+              <button 
+                onClick={() => setShowAlertsModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+               {alerts.length === 0 ? (
+                 <div className="text-center py-8 text-gray-500">
+                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
+                    <p className="font-bold">Sistem Normal!</p>
+                    <p className="text-sm">Tidak ada alert yang terdeteksi saat ini.</p>
+                 </div>
+               ) : (
+                 <div className="flex flex-col gap-4">
+                    {alerts.map((alert) => (
+                      <div 
+                        key={alert.id} 
+                        className={`flex gap-4 p-4 rounded-2xl border ${
+                           alert.type === "error" ? "bg-red-50 border-red-100" : 
+                           alert.type === "warning" ? "bg-orange-50 border-orange-100" :
+                           "bg-blue-50 border-blue-100"
+                        }`}
+                      >
+                         <div className={`p-3 rounded-xl h-fit ${
+                            alert.type === "error" ? "bg-red-100 text-red-600" : 
+                            alert.type === "warning" ? "bg-orange-100 text-orange-600" :
+                            "bg-blue-100 text-blue-600"
+                         }`}>
+                             {alert.type === "error" ? <AlertTriangle className="h-6 w-6" /> : <Info className="h-6 w-6" />}
+                         </div>
+                         <div className="flex-1">
+                            <h4 className={`font-bold text-lg ${
+                                alert.type === "error" ? "text-red-900" : "text-gray-900"
+                            }`}>
+                                {alert.title}
+                            </h4>
+                            <p className="text-gray-600 text-sm mt-1 leading-relaxed">
+                                {alert.message}
+                            </p>
+                            <span className="inline-block mt-3 text-xs font-bold text-gray-400 uppercase tracking-wide bg-white px-2 py-1 rounded-lg border border-gray-100 shadow-sm">
+                                {alert.time}
+                            </span>
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+               )}
+            </div>
+
+            <div className="p-6 bg-gray-50 border-t border-gray-100 text-center">
+                 <button 
+                    onClick={() => setShowAlertsModal(false)}
+                    className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-xl shadow-lg transition-all"
+                 >
+                    Tutup
+                 </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Loader Overlay */}
+      {isNavigating && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white/80 backdrop-blur-sm animate-in fade-in duration-200">
+           <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                 <div className="w-16 h-16 border-4 border-amber-200 rounded-full"></div>
+                 <div className="absolute top-0 left-0 w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                 <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 text-amber-600 animate-spin" />
+                 </div>
+              </div>
+              <p className="text-amber-900 font-bold text-lg animate-pulse">
+                Memuat Halaman...
+              </p>
+           </div>
+        </div>
+      )}
     </div>
   );
 }

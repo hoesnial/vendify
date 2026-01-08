@@ -12,6 +12,14 @@ import 'home_screen.dart';
 import 'midtrans_webview_screen.dart';
 
 import '../models/cart_item.dart';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
+import 'dart:io';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:gal/gal.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class PaymentScreen extends StatefulWidget {
   final List<CartItem>? directItems;
@@ -32,7 +40,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String? _errorMessage;
   String? _selectedPaymentMethod; // null, 'qris', or 'midtrans'
   bool _isCheckingStatus = false; // New flag for status checking feedback
+
   StreamSubscription? _dispenseResultSubscription;
+  final GlobalKey _qrKey = GlobalKey();
 
   @override
   void initState() {
@@ -490,6 +500,65 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _copyQrCode() async {
+    if (_payment?.qrCode == null) return;
+    await Clipboard.setData(ClipboardData(text: _payment!.qrCode));
+    Fluttertoast.showToast(
+      msg: "Kode QR berhasil disalin",
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.black54,
+      textColor: Colors.white,
+    );
+  }
+
+  Future<void> _saveQrImage() async {
+    try {
+      final boundary =
+          _qrKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+
+      if (boundary == null) {
+        Fluttertoast.showToast(msg: "Gagal menangkap gambar QR");
+        return;
+      }
+
+      // Convert boundary to image
+      final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final ByteData? byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+
+      if (byteData != null) {
+        final Uint8List pngBytes = byteData.buffer.asUint8List();
+
+        // Get temp directory
+        final directory = await getTemporaryDirectory();
+        final imagePath = '${directory.path}/qris_payment.png';
+        final File imageFile = File(imagePath);
+        await imageFile.writeAsBytes(pngBytes);
+
+        // Save to gallery
+        try {
+          await Gal.putImage(imagePath, album: 'Vendify');
+          Fluttertoast.showToast(
+            msg: "Gambar QR berhasil disimpan ke Galeri",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+          );
+        } on GalException catch (e) {
+          Fluttertoast.showToast(msg: "Gagal: ${e.type.message}");
+        } catch (e) {
+          Fluttertoast.showToast(msg: "Gagal menyimpan ke Galeri");
+        }
+      }
+    } catch (e) {
+      print('Error saving QR: $e');
+      Fluttertoast.showToast(msg: "Terjadi kesalahan: $e");
+    }
   }
 
   @override
@@ -1023,28 +1092,63 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppTheme.primaryBlue,
-                          width: 3,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primaryBlue.withOpacity(0.2),
-                            blurRadius: 10,
-                            spreadRadius: 2,
+                    RepaintBoundary(
+                      key: _qrKey,
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppTheme.primaryBlue,
+                            width: 3,
                           ),
-                        ],
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryBlue.withOpacity(0.2),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: QrImageView(
+                          data: _payment!.qrCode,
+                          version: QrVersions.auto,
+                          size: 250,
+                          backgroundColor: Colors.white,
+                        ),
                       ),
-                      child: QrImageView(
-                        data: _payment!.qrCode,
-                        version: QrVersions.auto,
-                        size: 250,
-                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: _copyQrCode,
+                          icon: const Icon(Icons.copy, size: 18),
+                          label: const Text('Salin Kode'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.primaryBlue,
+                            side: const BorderSide(color: AppTheme.primaryBlue),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: _saveQrImage,
+                          icon: const Icon(Icons.download, size: 18),
+                          label: const Text('Simpan QR'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryBlue,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
                     Container(

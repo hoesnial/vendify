@@ -12,10 +12,16 @@ export const metadata: Metadata = {
   description: "Admin Console for MediVend",
 };
 
+import AdminGuard from "@/components/admin/AdminGuard";
+
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <div className={lexend.className}>{children}</div>;
+  return (
+    <div className={lexend.className}>
+      <AdminGuard>{children}</AdminGuard>
+    </div>
+  );
 }

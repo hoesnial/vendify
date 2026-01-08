@@ -99,7 +99,7 @@ export default function InventoryPage() {
                   
                   let status: "out-of-stock" | "low-stock" | "in-stock" = "in-stock";
                   if (s.current_stock === 0) status = "out-of-stock";
-                  else if (stockPercentage < 20) status = "low-stock";
+                  else if (s.current_stock < 5) status = "low-stock";
 
                   transformedProducts.push({
                       id: `${p.id}-${s.slot_id}`, // Unique ID for key
@@ -243,9 +243,44 @@ export default function InventoryPage() {
     }
   };
 
-  const handleStock = (product: Product) => {
+  const handleStock = async (product: Product) => {
+    try {
+      // 1. Show loading state if needed (optional, or just fast fetch)
+      // product.id is "productId-slotId". Extract productId.
+      const rawId = product.id.toString().split("-")[0];
+      const productId = Number(rawId);
+
+      if (!isNaN(productId)) {
+          // 2. Fetch fresh data
+          const { vendingAPI } = await import("@/lib/api");
+          const freshProductData = await vendingAPI.getProduct(productId);
+          
+          // 3. Find the specific slot to get real-time stock
+          // The API returns 'slots' array inside product
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const freshSlot = (freshProductData as any).slots?.find((s: any) => s.slot_id === product.slot_id);
+          
+          if (freshSlot) {
+              console.log("Refreshed Stock Data:", freshSlot.current_stock);
+              // Update the product object with fresh stock
+              setSelectedProduct({
+                  ...product,
+                  current: freshSlot.current_stock, // Use fresh stock
+                  capacity: freshSlot.capacity
+              });
+          } else {
+              // Fallback if slot not found in fresh data (rare)
+              setSelectedProduct(product);
+          }
+      } else {
+          setSelectedProduct(product);
+      }
+    } catch (e) {
+      console.error("Failed to refresh stock:", e);
+      // Fallback to local state if fetch fails
       setSelectedProduct(product);
-      setView("stock-form");
+    }
+    setView("stock-form");
   };
 
   const handleBack = () => {

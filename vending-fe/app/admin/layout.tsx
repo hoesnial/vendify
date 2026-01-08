@@ -8,8 +8,8 @@ const lexend = Lexend({
 });
 
 export const metadata: Metadata = {
-  title: "MediVend Admin",
-  description: "Admin Console for MediVend",
+  title: "Vendify Admin",
+  description: "Admin Console for Vendify",
 };
 
 import AdminGuard from "@/components/admin/AdminGuard";

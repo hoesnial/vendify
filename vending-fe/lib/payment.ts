@@ -125,6 +125,31 @@ class PaymentService {
     }
   }
 
+  // Cancel payment transaction
+  async cancelPayment(orderId: string): Promise<boolean> {
+    try {
+      console.log("🚫 Cancelling payment for:", orderId);
+      
+      // Use keepalive for reliability during page unload
+      const response = await fetch(`/api/payment/cancel/${orderId}`, {
+        method: "POST",
+        keepalive: true, 
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        console.error("Failed to cancel payment:", response.statusText);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Error cancelling payment:", error);
+      return false;
+    }
+  }
+
   // Generate order ID
   generateOrderId(): string {
     const timestamp = Date.now();

@@ -7,6 +7,7 @@ import '../utils/helpers.dart';
 import '../theme/app_theme.dart';
 import 'payment_screen.dart';
 import '../models/cart_item.dart';
+import '../services/product_service.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -20,6 +21,43 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int _quantity = 1;
   bool _isFavorite = false;
+  final ProductService _productService = ProductService();
+  List<Product> _similarProducts = [];
+  bool _isLoadingSimilarPromise = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSimilarProducts();
+  }
+
+  Future<void> _loadSimilarProducts() async {
+    setState(() {
+      _isLoadingSimilarPromise = true;
+    });
+    try {
+      final products = await _productService.getProductsByCategory(
+        widget.product.category,
+      );
+      // Filter out the current product itself
+      if (mounted) {
+        setState(() {
+          _similarProducts = products
+              .where((p) => p.id != widget.product.id)
+              .take(5) // Limit to 5 similar products
+              .toList();
+          _isLoadingSimilarPromise = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading similar products: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingSimilarPromise = false;
+        });
+      }
+    }
+  }
 
   void _showSuccessToast() {
     Fluttertoast.showToast(
@@ -291,55 +329,146 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         const SizedBox(height: 24),
 
                         // Similar Products Section
-                        const Text(
-                          'Produk Serupa',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                        if (!_isLoadingSimilarPromise &&
+                            _similarProducts.isNotEmpty) ...[
+                          const Text(
+                            'Produk Serupa',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
+                          const SizedBox(height: 16),
 
-                        // Similar Products Horizontal List
-                        SizedBox(
-                          height: 120,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: 3,
-                            itemBuilder: (context, index) {
-                              return Container(
-                                width: 100,
-                                margin: const EdgeInsets.only(right: 12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF5F5F5),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Colors.grey.shade300,
-                                  ),
-                                ),
-                                child: const Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.fastfood,
-                                      size: 40,
-                                      color: Colors.grey,
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Product',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
+                          // Similar Products Horizontal List
+                          SizedBox(
+                            height: 200,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: _similarProducts.length,
+                              itemBuilder: (context, index) {
+                                final similarProduct = _similarProducts[index];
+                                return GestureDetector(
+                                  onTap: () {
+                                    // Navigate to detail page of this product
+                                    // Using pushReplacementMain to avoid infinite stack if users keep clicking similar products
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            ProductDetailScreen(
+                                              product: similarProduct,
+                                            ),
                                       ),
+                                    );
+                                  },
+                                  child: Container(
+                                    width: 140,
+                                    margin: const EdgeInsets.only(right: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.grey.shade200,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.05),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              );
-                            },
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        // Image
+                                        Expanded(
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                const BorderRadius.vertical(
+                                                  top: Radius.circular(12),
+                                                ),
+                                            child: Container(
+                                              width: double.infinity,
+                                              color: Colors.white,
+                                              child:
+                                                  (similarProduct.imageUrl !=
+                                                          null &&
+                                                      similarProduct
+                                                          .imageUrl!
+                                                          .isNotEmpty)
+                                                  ? Image.network(
+                                                      Helpers.getImageUrl(
+                                                        similarProduct.imageUrl,
+                                                      ),
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder:
+                                                          (
+                                                            context,
+                                                            error,
+                                                            stackTrace,
+                                                          ) {
+                                                            return const Center(
+                                                              child: Icon(
+                                                                Icons.fastfood,
+                                                                size: 40,
+                                                                color:
+                                                                    Colors.grey,
+                                                              ),
+                                                            );
+                                                          },
+                                                    )
+                                                  : const Center(
+                                                      child: Icon(
+                                                        Icons.fastfood,
+                                                        size: 40,
+                                                        color: Colors.grey,
+                                                      ),
+                                                    ),
+                                            ),
+                                          ),
+                                        ),
+                                        // Info
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                similarProduct.name,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                Helpers.formatCurrency(
+                                                  similarProduct.price,
+                                                ),
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppTheme.primaryBlue,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        ),
+                        ],
                         const SizedBox(height: 100), // Space for bottom bar
                       ],
                     ),

@@ -3,18 +3,20 @@ class ApiConfig {
   // PENTING: Untuk device fisik, gunakan IP komputer di network yang sama
   // Backend berjalan di port 3001, Frontend di port 3000
   static const String developmentUrl =
-      'http://192.168.100.17:3001/api'; // Device Fisik - IP Komputer
+      'https://vendify-be-production.up.railway.app/api'; // Device Fisik - IP Komputer
   static const String frontendUrl =
-      'http://169.254.86.244:3000'; // Frontend Next.js - IP Komputer
+      'https://vendifymachine.vercel.app'; // Frontend Next.js - IP Komputer
   // static const String developmentUrl = 'http://10.0.2.2:3001/api'; // Android Emulator
   // static const String frontendUrl = 'http://10.0.2.2:3000'; // Android Emulator
   // static const String developmentUrl = 'http://localhost:3001/api'; // iOS Simulator
   // static const String frontendUrl = 'http://localhost:3000'; // iOS Simulator
 
   // Production URLs - Update with your actual Render & Vercel URLs
-  static const String productionUrl = 'http://169.254.86.244:3001/api';
-  // 'https://vendify-be-production.up.railway.app/api';
-  static const String productionFrontendUrl = 'http://169.254.86.244:3000';
+  static const String productionUrl =
+      'https://vendify-be-production.up.railway.app/api';
+  // 'http://192.168.1.10:3001/api';
+  static const String productionFrontendUrl =
+      'https://vendifymachine.vercel.app';
 
   // Current environment
   // GANTI ke true untuk menggunakan production API

@@ -7,6 +7,10 @@ import 'package:fluttertoast/fluttertoast.dart';
 import '../providers/cart_provider.dart';
 import 'prescription_scan_screen.dart';
 import 'product_detail_screen.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:async';
+import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
@@ -21,18 +25,87 @@ class _ProductListScreenState extends State<ProductListScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
+  // Connectivity
+  bool _isOnline = false;
+  bool _isCheckingConnection = false;
+  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+
   @override
   void initState() {
     super.initState();
+    _checkInitialConnectivity();
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      results,
+    ) {
+      _checkBackendConnection();
+    });
     _loadProducts();
   }
 
   @override
   void dispose() {
+    _connectivitySubscription?.cancel();
     super.dispose();
   }
 
+  Future<void> _checkInitialConnectivity() async {
+    await _checkBackendConnection();
+  }
+
+  Future<void> _checkBackendConnection() async {
+    if (_isCheckingConnection) return;
+
+    setState(() {
+      _isCheckingConnection = true;
+    });
+
+    bool isConnected = false;
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult == ConnectivityResult.none) {
+        isConnected = false;
+      } else {
+        // Try to reach backend
+        try {
+          // Use a simple HEAD or GET request to base URL or a known endpoint
+          // Using a short timeout to fail fast
+          final response = await http
+              .get(
+                Uri.parse(
+                  ApiConfig.baseUrl + '/products',
+                ), // Assuming this exists or just check root
+                headers: ApiConfig.headers,
+              )
+              .timeout(const Duration(seconds: 5));
+
+          if (response.statusCode >= 200 && response.statusCode < 500) {
+            isConnected = true;
+          }
+        } catch (e) {
+          debugPrint('Backend check failed: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('Connectivity check failed: $e');
+    }
+
+    if (mounted) {
+      setState(() {
+        _isOnline = isConnected;
+        _isCheckingConnection = false;
+      });
+
+      // If we just came online, reload products
+      if (isConnected && _filteredProducts.isEmpty) {
+        _loadProducts();
+      }
+    }
+  }
+
   Future<void> _loadProducts() async {
+    if (_isLoading && _filteredProducts.isNotEmpty)
+      return; // Prevent double loading
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -40,15 +113,22 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
     try {
       final products = await _productService.getProducts();
-      setState(() {
-        _filteredProducts = products;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _filteredProducts = products;
+          _isLoading = false;
+          _isOnline = true; // If we got products, we are definitely online
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+        // If loading failed, maybe we are offline
+        _checkBackendConnection();
+      }
     }
   }
 
@@ -136,33 +216,53 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         ),
                       ),
                       // Connected Status
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Text(
-                              'Online',
-                              style: TextStyle(
-                                color: Color.fromARGB(255, 4, 255, 0),
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                      GestureDetector(
+                        onTap:
+                            _checkBackendConnection, // Tap to retry connection
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_isCheckingConnection)
+                                const Padding(
+                                  padding: EdgeInsets.only(right: 6),
+                                  child: SizedBox(
+                                    width: 10,
+                                    height: 10,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              Text(
+                                _isOnline ? 'Online' : 'Offline',
+                                style: TextStyle(
+                                  color: _isOnline
+                                      ? const Color.fromARGB(255, 4, 255, 0)
+                                      : const Color.fromARGB(255, 255, 80, 80),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 6),
-                            Icon(
-                              Icons.wifi,
-                              color: Color.fromARGB(255, 4, 255, 0),
-                              size: 16,
-                            ),
-                          ],
+                              const SizedBox(width: 6),
+                              Icon(
+                                _isOnline ? Icons.wifi : Icons.wifi_off,
+                                color: _isOnline
+                                    ? const Color.fromARGB(255, 4, 255, 0)
+                                    : const Color.fromARGB(255, 255, 80, 80),
+                                size: 16,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -270,7 +370,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.7,
+                  childAspectRatio: 0.65,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                 ),
@@ -315,24 +415,29 @@ class _ProductListScreenState extends State<ProductListScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.error_outline,
+              Icons.signal_wifi_off, // Better icon for connection issues
               size: 80,
               color: AppTheme.errorRed.withOpacity(0.5),
             ),
             const SizedBox(height: 16),
             Text(
-              'Oops! Terjadi Kesalahan',
+              'Gagal Memuat Produk',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
             Text(
-              _errorMessage ?? 'Tidak dapat memuat produk',
+              _isOnline
+                  ? (_errorMessage ?? 'Terjadi kesalahan')
+                  : 'Tidak ada koneksi internet',
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: _loadProducts,
+              onPressed: () {
+                _checkBackendConnection();
+                _loadProducts();
+              },
               icon: const Icon(Icons.refresh),
               label: const Text('Coba Lagi'),
             ),
@@ -369,6 +474,4 @@ class _ProductListScreenState extends State<ProductListScreen> {
       ),
     );
   }
-
-  // Widget _buildCategories() removed as per request
 }
